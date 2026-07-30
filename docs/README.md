@@ -10,6 +10,7 @@ Internal product and architecture documentation.
 | Roadmap backlog           | [roadmap/backlog.md](./roadmap/backlog.md)                       |
 | Current focus             | [roadmap/current.md](./roadmap/current.md)                       |
 | Device Layer feature      | [features/device-layer.md](./features/device-layer.md)           |
+| Web Serial provider       | [features/web-serial.md](./features/web-serial.md)               |
 | Feature template          | [_templates/feature.md](./_templates/feature.md)                 |
 
 ## Process

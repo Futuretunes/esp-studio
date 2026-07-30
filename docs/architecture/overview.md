@@ -77,8 +77,8 @@ This keeps core modules testable with fake providers and keeps browser APIs out 
 ## Evolution strategy
 
 1. **Foundation** — UI shell, routing, tooling (done).
-2. **Device Layer** — transport-agnostic contracts and manager (current).
-3. **Providers & engines** — Web Serial, flash, serial monitor, filesystem, OTA.
+2. **Device Layer** — transport-agnostic contracts and manager (done).
+3. **Providers & engines** — Web Serial (current), flash, serial monitor, filesystem, OTA.
 4. **Extensibility** — firmware plugins, library, IDE, public plugin API.
 5. **Release v1.0** — documented, tested, replaceable modules with at least one production transport.
 
@@ -87,5 +87,6 @@ This keeps core modules testable with fake providers and keeps browser APIs out 
 - [Device Layer architecture](./device-layer.md)
 - [Plugin system](./plugin-system.md)
 - [Device Layer feature spec](../features/device-layer.md)
+- [Web Serial feature](../features/web-serial.md)
 - [Roadmap backlog](../roadmap/backlog.md)
 - [Current focus](../roadmap/current.md)

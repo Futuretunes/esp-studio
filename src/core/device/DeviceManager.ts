@@ -186,6 +186,54 @@ export class DeviceManager {
   }
 
   /**
+   * Opens a connection to an already-known {@link DeviceInfo} snapshot.
+   *
+   * Unlike {@link DeviceManager.connect}, this does **not** call
+   * `requestDevice()`. Use it after `listDevices()` when reconnecting to a
+   * previously authorized port without showing the chooser again.
+   *
+   * @param providerId - Registered provider id (must match `info.providerId`).
+   * @param info - Device metadata previously returned by the provider.
+   * @param options - Optional connect options.
+   * @returns A connected {@link Device} handle.
+   * @throws {UnknownProviderError} When the provider is not registered.
+   * @throws {ProviderUnavailableError} When `isAvailable()` is false.
+   * @throws {DeviceError} When `info.providerId` does not match `providerId`.
+   */
+  public async connectToDevice(
+    providerId: ProviderId,
+    info: DeviceInfo,
+    options?: DeviceConnectOptions,
+  ): Promise<Device> {
+    if (info.providerId !== providerId) {
+      throw new DeviceError(
+        `Device provider mismatch: expected "${providerId}", got "${info.providerId}"`,
+      );
+    }
+
+    const provider = this.#providers.get(providerId);
+    if (!provider) {
+      throw new UnknownProviderError(providerId);
+    }
+
+    const available = await provider.isAvailable();
+    if (!available) {
+      throw new ProviderUnavailableError(providerId);
+    }
+
+    this.#throwIfAborted(options?.signal);
+
+    const connection =
+      options === undefined
+        ? await provider.connect(info)
+        : await provider.connect(info, options);
+
+    const device = createDevice(info, connection);
+    this.#devices.set(device.id, device);
+    return device;
+  }
+
+  /**
    * Returns a connected device handle by id.
    *
    * @param deviceId - Device id to look up.

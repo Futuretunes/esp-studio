@@ -194,11 +194,19 @@ Exact error classes may expand later without breaking successful-path APIs.
 ## Future Improvements
 
 - Event emitter / observable for connection state changes.
-- Typed error hierarchy (`DeviceError`, `ProviderUnavailableError`, …).
 - Persistence of recent `DeviceInfo` records.
 - Capability negotiation refinements (baud rates, flash modes).
 - Multi-device selection policies.
 - Migration of UI store / `deviceService` onto `DeviceManager`.
+
+### Additive DeviceManager API
+
+`DeviceManager.connectToDevice(providerId, info, options?)` opens a known
+`DeviceInfo` without calling `requestDevice()`. This is backwards-compatible
+and supports reconnecting to ports returned by `listDevices()` (for example
+Web Serial `getPorts()`).
+
+`DeviceConnectOptions.baudRate` is an optional hint for serial transports.
 
 ## Future providers
 
