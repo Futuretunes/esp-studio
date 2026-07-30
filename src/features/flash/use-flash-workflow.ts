@@ -10,6 +10,10 @@ import {
 import type { FlashProgress } from "@/features/flash/FlashProgress";
 import type { FlashResult } from "@/features/flash/FlashResult";
 import { FlashService } from "@/features/flash/FlashService";
+import {
+  loadBuiltInCatalog,
+  type BuiltInCatalogEntry,
+} from "@/features/firmware/catalog";
 import { FirmwareCatalog } from "@/features/firmware/FirmwareCatalog";
 import type {
   FirmwareCatalogEntry,
@@ -64,7 +68,7 @@ export function parseCatalogSelectionKey(
 /**
  * Firmware source mode on the Flash page.
  */
-export type FlashFirmwareSource = "local" | "github";
+export type FlashFirmwareSource = "builtin" | "github" | "local";
 
 export type FlashUiErrorKind =
   | "unsupported"
@@ -97,7 +101,13 @@ export function useFlashWorkflow() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [firmwareSource, setFirmwareSource] =
-    useState<FlashFirmwareSource>("local");
+    useState<FlashFirmwareSource>("builtin");
+  const [builtInEntries, setBuiltInEntries] = useState<
+    readonly BuiltInCatalogEntry[]
+  >([]);
+  const [selectedBuiltInId, setSelectedBuiltInId] = useState<string | null>(
+    null,
+  );
   const [repositorySlug, setRepositorySlug] = useState(
     () => readPersistedGitHubRepository() ?? "",
   );
@@ -125,6 +135,10 @@ export function useFlashWorkflow() {
   useEffect(() => {
     void refreshCatalog();
   }, [refreshCatalog]);
+
+  useEffect(() => {
+    void loadBuiltInCatalog().then(setBuiltInEntries);
+  }, []);
 
   const visibleEntries = useMemo(() => {
     if (firmwareSource === "local") {
@@ -175,8 +189,9 @@ export function useFlashWorkflow() {
       setFirmwareSource(source);
       setResolved(null);
       setSelectionKey("");
+
       if (source === "local") {
-        // Keep GitHub cache so switching back remains fast; clear local resolution only.
+        setSelectedBuiltInId(null);
         const current = localProvider.getCurrent();
         if (current) {
           setSelectionKey(
@@ -187,39 +202,70 @@ export function useFlashWorkflow() {
           );
           setResolved(current);
         }
-      } else {
-        setReleaseSummary(githubProvider.getReleaseSummary());
+        return;
       }
+
+      if (source === "github") {
+        setSelectedBuiltInId(null);
+        setReleaseSummary(githubProvider.getReleaseSummary());
+        return;
+      }
+
+      // Built-in: keep GitHub cache if it matches a previously selected card.
+      setReleaseSummary(githubProvider.getReleaseSummary());
     },
     [clearFeedback, githubProvider, localProvider],
   );
 
-  const loadGitHubRepository = useCallback(async () => {
-    clearFeedback();
-    setIsLoadingGithub(true);
-    setResolved(null);
-    setSelectionKey("");
+  const configureGitHubRepository = useCallback(
+    async (slug: string, builtInId: string | null) => {
+      clearFeedback();
+      setIsLoadingGithub(true);
+      setResolved(null);
+      setSelectionKey("");
+      setSelectedBuiltInId(builtInId);
 
-    try {
-      const summary = await githubProvider.configureRepository(repositorySlug);
-      setReleaseSummary(summary);
-      await refreshCatalog();
-    } catch (error) {
-      githubProvider.clear();
-      setReleaseSummary(null);
-      await refreshCatalog();
-      setErrorKind("provider");
-      setErrorMessage(
-        isGitHubFirmwareProviderError(error)
-          ? error.message
-          : error instanceof Error
+      try {
+        const summary = await githubProvider.configureRepository(slug);
+        setReleaseSummary(summary);
+        setRepositorySlug(slug);
+        await refreshCatalog();
+      } catch (error) {
+        githubProvider.clear();
+        setReleaseSummary(null);
+        await refreshCatalog();
+        setErrorKind("provider");
+        setErrorMessage(
+          isGitHubFirmwareProviderError(error)
             ? error.message
-            : "Could not load firmware from GitHub.",
-      );
-    } finally {
-      setIsLoadingGithub(false);
-    }
-  }, [clearFeedback, githubProvider, refreshCatalog, repositorySlug]);
+            : error instanceof Error
+              ? error.message
+              : "Could not load firmware from GitHub.",
+        );
+      } finally {
+        setIsLoadingGithub(false);
+      }
+    },
+    [clearFeedback, githubProvider, refreshCatalog],
+  );
+
+  const loadGitHubRepository = useCallback(async () => {
+    await configureGitHubRepository(repositorySlug, null);
+  }, [configureGitHubRepository, repositorySlug]);
+
+  const selectBuiltInEntry = useCallback(
+    (entryId: string) => {
+      const entry = builtInEntries.find((item) => item.id === entryId);
+      if (!entry) {
+        setErrorKind("failed");
+        setErrorMessage("That built-in firmware entry is no longer available.");
+        return;
+      }
+
+      void configureGitHubRepository(entry.repository, entry.id);
+    },
+    [builtInEntries, configureGitHubRepository],
+  );
 
   const selectCatalogEntry = useCallback(
     (key: string) => {
@@ -286,7 +332,6 @@ export function useFlashWorkflow() {
       clearFeedback();
 
       if (!file) {
-        // User cancelled the picker — restore selection to imported package if any.
         const current = localProvider.getCurrent();
         if (current) {
           setSelectionKey(
@@ -356,11 +401,13 @@ export function useFlashWorkflow() {
 
     if (!resolved || resolved.images.length === 0) {
       setErrorKind("no-file");
-      setErrorMessage(
-        firmwareSource === "github"
-          ? "Select a GitHub firmware option and wait for download before flashing."
-          : "Select firmware from the catalog (Local file…) before flashing.",
-      );
+      const message =
+        firmwareSource === "local"
+          ? "Select firmware from the catalog (Local file…) before flashing."
+          : firmwareSource === "builtin"
+            ? "Choose a built-in project, then select a firmware option before flashing."
+            : "Select a GitHub firmware option and wait for download before flashing.";
+      setErrorMessage(message);
       return;
     }
 
@@ -448,11 +495,16 @@ export function useFlashWorkflow() {
   ]);
 
   const primaryImage = resolved?.images[0] ?? null;
+  const selectedBuiltIn =
+    builtInEntries.find((entry) => entry.id === selectedBuiltInId) ?? null;
 
   return {
     activeDevice,
     webSerialSupported,
     firmwareSource,
+    builtInEntries,
+    selectedBuiltInId,
+    selectedBuiltIn,
     repositorySlug,
     releaseSummary,
     isLoadingGithub,
@@ -472,6 +524,7 @@ export function useFlashWorkflow() {
     setFirmwareSource: changeFirmwareSource,
     setRepositorySlug,
     loadGitHubRepository,
+    selectBuiltInEntry,
     selectCatalogEntry,
     selectFirmwareFile,
     clearFirmware,

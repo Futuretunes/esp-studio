@@ -21,6 +21,7 @@ Internal product and architecture documentation.
 | Firmware Catalog (MVP)    | [features/firmware-catalog.md](./features/firmware-catalog.md)           |
 | Firmware Manifest         | [features/firmware-manifest.md](./features/firmware-manifest.md)         |
 | GitHub Firmware Provider  | [features/github-firmware-provider.md](./features/github-firmware-provider.md) |
+| Built-in Firmware Catalog | [features/built-in-firmware-catalog.md](./features/built-in-firmware-catalog.md) |
 | Feature template          | [_templates/feature.md](./_templates/feature.md)                         |
 
 ## Process
