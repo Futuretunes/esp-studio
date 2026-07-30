@@ -25,6 +25,7 @@ export {
   type FirmwareManifestDocument,
   type FirmwareManifestImageRef,
   type FirmwareManifestIssueCode,
+  type FirmwareManifestPackageKind,
   type FirmwareManifestParseResult,
   type FirmwareManifestValidationFailure,
   type FirmwareManifestValidationIssue,
@@ -36,6 +37,19 @@ export {
   type FirmwareManifestDocumentInput,
   type FirmwareManifestValidateOptions,
 } from "./FirmwareManifestValidator";
+export {
+  classifyFirmwareImageRole,
+  formatFirmwareImageRoleLabel,
+  formatFirmwarePackageKind,
+  firmwareImageRoleUsesEspImageMagic,
+  requiredFirmwarePackageImages,
+  summarizeFirmwareManifestDocument,
+  summarizeFirmwarePackage,
+  type FirmwareImageRole,
+  type FirmwarePackageImageSummary,
+  type FirmwarePackageKind,
+  type FirmwarePackageSummary,
+} from "./firmware-package-kind";
 export type {
   FirmwareCatalogAction,
   FirmwareCatalogEntry,

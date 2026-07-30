@@ -8,14 +8,22 @@ import {
 import { DEFAULT_APP_FLASH_ADDRESS } from "@/features/flash/constants";
 import {
   createFailedFlashInspectionReport,
-  flashInspectionRequiresConfirmation,
   type FlashInspectionReport,
 } from "@/features/flash/flash-inspection";
+import {
+  planFlashInstall,
+  type FlashInstallPlan,
+} from "@/features/flash/flash-strategy";
 import {
   FlashBusyError,
   FlashDeviceError,
   FlashError,
 } from "@/features/flash/errors";
+import {
+  requiredFirmwarePackageImages,
+  summarizeFirmwarePackage,
+  type FirmwarePackageSummary,
+} from "@/features/firmware/firmware-package-kind";
 import type { FlashProgress } from "@/features/flash/FlashProgress";
 import type { FlashResult } from "@/features/flash/FlashResult";
 import { FlashService } from "@/features/flash/FlashService";
@@ -92,6 +100,7 @@ export type FlashUiErrorKind =
   | "invalid-file"
   | "busy"
   | "failed"
+  | "blocked"
   | "provider"
   | "proxy-unavailable"
   | null;
@@ -150,8 +159,10 @@ export function useFlashWorkflow() {
   const [inspectionNotice, setInspectionNotice] = useState<string | null>(
     null,
   );
-  const [pendingOverwrite, setPendingOverwrite] =
-    useState<FlashInspectionReport | null>(null);
+  const [pendingOverwrite, setPendingOverwrite] = useState<{
+    readonly report: FlashInspectionReport;
+    readonly plan: Extract<FlashInstallPlan, { action: "confirm" }>;
+  } | null>(null);
   const [errorKind, setErrorKind] = useState<FlashUiErrorKind>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [providerErrorCode, setProviderErrorCode] = useState<
@@ -631,6 +642,18 @@ export function useFlashWorkflow() {
     [clearFeedback, clearFirmware, localProvider, refreshCatalog],
   );
 
+  const packageSummary = useMemo((): FirmwarePackageSummary | null => {
+    if (!resolved || resolved.images.length === 0) {
+      return null;
+    }
+    return summarizeFirmwarePackage({
+      ...(resolved.manifest.packageKind !== undefined
+        ? { packageKind: resolved.manifest.packageKind }
+        : {}),
+      images: resolved.images,
+    });
+  }, [resolved]);
+
   const performFlash = useCallback(async () => {
     if (!activeDevice || !resolved || resolved.images.length === 0) {
       setErrorKind("no-file");
@@ -639,6 +662,33 @@ export function useFlashWorkflow() {
       );
       return;
     }
+
+    const summary =
+      packageSummary ??
+      summarizeFirmwarePackage({
+        ...(resolved.manifest.packageKind !== undefined
+          ? { packageKind: resolved.manifest.packageKind }
+          : {}),
+        images: resolved.images,
+      });
+
+    const required = requiredFirmwarePackageImages(summary);
+    const requiredIds = new Set(required.map((image) => image.id));
+    const imagesToFlash = resolved.images.filter((image) =>
+      requiredIds.has(image.id),
+    );
+
+    if (imagesToFlash.length === 0) {
+      setErrorKind("no-file");
+      setErrorMessage(
+        "This firmware package has no required images to write.",
+      );
+      return;
+    }
+
+    const rolesById = new Map(
+      summary.images.map((image) => [image.id, image.role] as const),
+    );
 
     setIsFlashing(true);
     setProgress({
@@ -650,12 +700,16 @@ export function useFlashWorkflow() {
     try {
       const flashResult = await service.flash({
         deviceId: activeDevice.id,
-        images: resolved.images.map((image) => ({
+        images: imagesToFlash.map((image) => ({
           data: image.data,
           address: image.address,
         })),
+        imageRoles: imagesToFlash.map(
+          (image) => rolesById.get(image.id) ?? "other",
+        ),
         verifyAfterWrite: true,
         resetAfter: true,
+        verifyBootableAfterReset: true,
         onProgress: (next) => {
           setProgress(next);
         },
@@ -714,7 +768,7 @@ export function useFlashWorkflow() {
     } finally {
       setIsFlashing(false);
     }
-  }, [activeDevice, resolved, service]);
+  }, [activeDevice, packageSummary, resolved, service]);
 
   const startFlash = useCallback(async () => {
     clearFeedback();
@@ -731,7 +785,7 @@ export function useFlashWorkflow() {
       return;
     }
 
-    if (!resolved || resolved.images.length === 0) {
+    if (!resolved || resolved.images.length === 0 || !packageSummary) {
       setErrorKind("no-file");
       setErrorMessage(
         "Select a firmware project and wait for it to load before installing.",
@@ -753,14 +807,24 @@ export function useFlashWorkflow() {
         },
       });
 
-      if (flashInspectionRequiresConfirmation(report.outcome)) {
-        setPendingOverwrite(report);
+      const plan = planFlashInstall(report.outcome, packageSummary);
+
+      if (plan.action === "stop") {
+        setErrorKind("blocked");
+        setErrorMessage(plan.message);
         setIsFlashing(false);
         setProgress(null);
         return;
       }
 
-      setInspectionNotice(report.message);
+      if (plan.action === "confirm") {
+        setPendingOverwrite({ report, plan });
+        setIsFlashing(false);
+        setProgress(null);
+        return;
+      }
+
+      setInspectionNotice(plan.notice);
       await performFlash();
     } catch (error) {
       setIsFlashing(false);
@@ -774,11 +838,16 @@ export function useFlashWorkflow() {
         setErrorKind("failed");
         setErrorMessage(error.message);
       } else {
-        // Unexpected throw — still require overwrite confirm (honest failure path).
         const report = createFailedFlashInspectionReport(
           error instanceof Error ? error.message : undefined,
         );
-        setPendingOverwrite(report);
+        const plan = planFlashInstall(report.outcome, packageSummary);
+        if (plan.action === "confirm") {
+          setPendingOverwrite({ report, plan });
+        } else if (plan.action === "stop") {
+          setErrorKind("blocked");
+          setErrorMessage(plan.message);
+        }
         setProgress(null);
       }
     }
@@ -786,6 +855,7 @@ export function useFlashWorkflow() {
     activeDevice,
     clearFeedback,
     ensureSupport,
+    packageSummary,
     performFlash,
     resolved,
     service,
@@ -858,6 +928,7 @@ export function useFlashWorkflow() {
     selectionKey,
     resolved,
     primaryImage,
+    packageSummary,
     isFlashing,
     progress,
     result,

@@ -10,6 +10,7 @@ import {
   type FirmwareCompatibleChipFamily,
   type FirmwareManifestDocument,
   type FirmwareManifestImageRef,
+  type FirmwareManifestPackageKind,
   type FirmwareManifestValidationIssue,
   type FirmwareManifestValidationResult,
 } from "@/features/firmware/FirmwareManifestSchema";
@@ -19,6 +20,11 @@ const SOURCE_KINDS: readonly FirmwareSourceKind[] = [
   "github",
   "esp-web-tools",
   "remote",
+];
+
+const PACKAGE_KINDS: readonly FirmwareManifestPackageKind[] = [
+  "complete",
+  "application-only",
 ];
 
 /**
@@ -32,6 +38,7 @@ export type FirmwareManifestDocumentInput = {
   readonly version?: string;
   readonly sourceKind: string;
   readonly providerId?: string;
+  readonly packageKind?: string;
   readonly chipFamilies: readonly string[];
   readonly images: readonly {
     readonly id: string;
@@ -40,6 +47,7 @@ export type FirmwareManifestDocumentInput = {
     readonly path?: string;
     readonly size?: number;
     readonly sha256?: string;
+    readonly required?: boolean;
   }[];
 };
 
@@ -143,6 +151,19 @@ export function validateFirmwareManifestDocument(
     validateImageExistence(document.images, options.images, issues);
   }
 
+  let packageKind: FirmwareManifestPackageKind | undefined;
+  if (document.packageKind !== undefined) {
+    if (!isPackageKind(document.packageKind)) {
+      issues.push({
+        code: "invalid-type",
+        path: "/packageKind",
+        message: `Invalid packageKind "${document.packageKind}". Expected "complete" or "application-only".`,
+      });
+    } else {
+      packageKind = document.packageKind;
+    }
+  }
+
   if (issues.length > 0 || !isSourceKind(document.sourceKind)) {
     return { ok: false, issues };
   }
@@ -161,6 +182,7 @@ export function validateFirmwareManifestDocument(
     ...(document.providerId !== undefined
       ? { providerId: document.providerId }
       : {}),
+    ...(packageKind !== undefined ? { packageKind } : {}),
   };
 
   return { ok: true, document: normalized };
@@ -174,6 +196,7 @@ function validateImageRef(
     readonly path?: string;
     readonly size?: number;
     readonly sha256?: string;
+    readonly required?: boolean;
   },
   index: number,
   issues: FirmwareManifestValidationIssue[],
@@ -244,6 +267,15 @@ function validateImageRef(
     valid = false;
   }
 
+  if (image.required !== undefined && typeof image.required !== "boolean") {
+    issues.push({
+      code: "invalid-type",
+      path: `${base}/required`,
+      message: "Image required must be a boolean when provided.",
+    });
+    valid = false;
+  }
+
   if (!valid) {
     return undefined;
   }
@@ -255,6 +287,7 @@ function validateImageRef(
     ...(image.path !== undefined ? { path: image.path } : {}),
     ...(image.size !== undefined ? { size: image.size } : {}),
     ...(image.sha256 !== undefined ? { sha256: image.sha256 } : {}),
+    ...(image.required !== undefined ? { required: image.required } : {}),
   };
 }
 
@@ -310,4 +343,8 @@ function isFirmwareImageArray(
 
 function isSourceKind(value: string): value is FirmwareSourceKind {
   return (SOURCE_KINDS as readonly string[]).includes(value);
+}
+
+function isPackageKind(value: string): value is FirmwareManifestPackageKind {
+  return (PACKAGE_KINDS as readonly string[]).includes(value);
 }

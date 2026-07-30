@@ -29,6 +29,7 @@ export function FlashFeature(): JSX.Element {
     selectionKey,
     resolved,
     primaryImage,
+    packageSummary,
     isFlashing,
     progress,
     result,
@@ -108,6 +109,7 @@ export function FlashFeature(): JSX.Element {
         selectionKey={selectionKey}
         resolved={resolved}
         primaryImage={primaryImage}
+        packageSummary={packageSummary}
         isFlashing={isFlashing}
         progress={progress}
         result={result}

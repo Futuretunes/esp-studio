@@ -18,4 +18,8 @@ export type FirmwareImage = {
   readonly size: number;
   /** Firmware payload. */
   readonly data: Uint8Array;
+  /**
+   * Whether this image must be written (`true` when omitted).
+   */
+  readonly required?: boolean;
 };
