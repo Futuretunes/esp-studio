@@ -30,6 +30,7 @@ Open [http://localhost:5173](http://localhost:5173).
 | `pnpm lint`      | Run ESLint                              |
 | `pnpm format`    | Format with Prettier                    |
 | `pnpm typecheck` | Run TypeScript project references check |
+| `pnpm test`      | Run Vitest smoke tests                  |
 | `pnpm preview`   | Preview the production build            |
 
 ## Architecture
@@ -38,4 +39,4 @@ Feature-based layout under `src/features/*`, with shared UI in `src/components`,
 
 Product and architecture docs: [`docs/README.md`](./docs/README.md).
 
-Flashing and Web Serial are intentionally **not** implemented yet; use the Device Layer (`src/core/device`) as the stable boundary for future providers.
+Device connect, flash, serial monitor, and filesystem browse run in the browser over Web Serial (Chromium). See [`docs/hardware-compatibility.md`](./docs/hardware-compatibility.md).

@@ -7,6 +7,7 @@
 export {
   WebSerialConnection,
   WEB_SERIAL_CAPABILITIES,
+  type WebSerialConnectionOptions,
 } from "./WebSerialConnection";
 export { WebSerialTransportIo } from "./WebSerialTransportIo";
 export {

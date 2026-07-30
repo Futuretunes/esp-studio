@@ -26,8 +26,8 @@ export function FeaturePlaceholder({
         <p className="text-muted-foreground text-sm">{description}</p>
         {children}
         <p className="bg-muted/60 text-muted-foreground rounded-md px-3 py-2 text-xs">
-          This feature is scaffolded and ready for implementation. Flashing and
-          Web Serial are intentionally deferred.
+          This page is scaffolded for a later milestone. Core device, flash,
+          serial, and filesystem tools are available from the sidebar today.
         </p>
       </CardContent>
     </Card>

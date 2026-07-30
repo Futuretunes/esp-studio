@@ -159,7 +159,11 @@ export class WebSerialProvider implements DeviceProvider {
     try {
       await port.open({ baudRate });
       this.#throwIfAborted(options?.signal);
-      return new WebSerialConnection(port);
+      return new WebSerialConnection(port, {
+        onUnexpectedDisconnect: () => {
+          this.#forgetPort(info.id);
+        },
+      });
     } catch (error) {
       // If open failed because the abort fired after open started, close best-effort.
       if (options?.signal?.aborted) {
@@ -211,7 +215,33 @@ export class WebSerialProvider implements DeviceProvider {
     this.#portSequence += 1;
     const id = `web-serial:${String(this.#portSequence)}`;
     this.#ports.set(id, port);
+    this.#watchPortLifetime(id, port);
     return this.#toDeviceInfo(id, port);
+  }
+
+  /**
+   * Drops a remembered port when the browser reports it is gone.
+   *
+   * @param deviceId - Device id previously returned by this provider.
+   */
+  #forgetPort(deviceId: string): void {
+    this.#ports.delete(deviceId);
+  }
+
+  /**
+   * Listens for Chromium `disconnect` so revoked/unplugged ports leave the map.
+   */
+  #watchPortLifetime(deviceId: string, port: WebSerialPort): void {
+    if (typeof port.addEventListener !== "function") {
+      return;
+    }
+
+    const onDisconnect = (): void => {
+      this.#forgetPort(deviceId);
+      port.removeEventListener?.("disconnect", onDisconnect);
+    };
+
+    port.addEventListener("disconnect", onDisconnect);
   }
 
   #toDeviceInfo(id: string, port: WebSerialPort): DeviceInfo {

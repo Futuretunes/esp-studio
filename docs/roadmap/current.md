@@ -1,27 +1,25 @@
 # Current Focus
 
-**Active milestone:** One-click Install (next)
+**Active milestone:** Firmware Library
 
 ## Why this next
 
-GitHub Firmware Provider is in place. The next UX step is fewer manual clicks between selecting a catalog entry and flashing through `FlashService`.
+Firmware Platform and Filesystem Platform are complete. Next is the product browse experience: discover firmware and launch the existing one-click install flow—no new abstractions.
 
-## Just completed
+## In scope
 
-**GitHub Firmware Provider (MVP)** — remote `FirmwareProvider` for GitHub Releases with manifest discovery / `.bin` fallback and Flash UI source switch.
-
-## In scope (One-click Install)
-
-1. Streamlined Flash / library flow over `FirmwareCatalog` + `FlashService`
-2. Keep providers pluggable; no GitHub-specific UI beyond the existing source
+1. `docs/features/firmware-library.md`
+2. `src/features/library/` browse UI (search, categories, cards)
+3. Deep-link Install → `/flash?project=<id>` + `selectBuiltInEntry`
+4. Recently used + install-history placeholder
 
 ## Out of scope
 
-OTA, ESP Web Tools provider, GitHub auth, auto-update
+Remote search, auth, ratings, reviews, downloads telemetry, OTA, new providers
 
 ## Related documents
 
-- [GitHub Firmware Provider](../features/github-firmware-provider.md)
-- [Firmware Catalog](../features/firmware-catalog.md)
-- [Flash UI](../features/flash-ui.md)
+- [Firmware Library](../features/firmware-library.md)
+- [One-click Install](../features/one-click-install.md)
+- [Built-in Firmware Catalog](../features/built-in-firmware-catalog.md)
 - [Backlog](./backlog.md)

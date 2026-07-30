@@ -116,7 +116,21 @@ export function useSerialMonitor() {
             break;
           }
           if (chunk === null) {
-            setErrorMessage("Serial stream ended.");
+            const stillTracked = manager.getDevice(deviceId);
+            const connectionState = stillTracked?.connection.state;
+            if (
+              !stillTracked ||
+              connectionState === "disconnected" ||
+              connectionState === "error"
+            ) {
+              setErrorMessage(
+                "Serial stream ended because the device disconnected. Reconnect the board to continue.",
+              );
+            } else {
+              setErrorMessage(
+                "Serial stream ended. Restart the monitor if the device is still connected.",
+              );
+            }
             break;
           }
 
@@ -240,6 +254,15 @@ export function useSerialMonitor() {
     setOutput("");
   }, []);
 
+  const restartMonitor = useCallback(() => {
+    const deviceId = useDeviceStore.getState().activeDevice?.id;
+    if (!deviceId) {
+      setErrorMessage("Connect a device before restarting the monitor.");
+      return;
+    }
+    void runMonitorLoop(deviceId);
+  }, [runMonitorLoop]);
+
   const activeDeviceId = activeDevice?.id;
 
   useEffect(() => {
@@ -274,5 +297,6 @@ export function useSerialMonitor() {
     handleDisconnect,
     handleSend,
     clearOutput,
+    restartMonitor,
   };
 }

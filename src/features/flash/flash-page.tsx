@@ -1,17 +1,25 @@
 import { useEffect, type JSX } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { PageHeader } from "@/components/page-header";
 import { FlashPanel } from "@/features/flash/flash-panel";
 import { useFlashWorkflow } from "@/features/flash/use-flash-workflow";
 
 /**
- * Flash feature: catalog-selected firmware flashing through {@link FlashService}.
+ * Flash feature: one-click install through catalog + {@link FlashService}.
+ *
+ * Accepts `?project=<builtInId>` from the Firmware Library Install CTA.
  */
 export function FlashFeature(): JSX.Element {
+  const [searchParams] = useSearchParams();
+  const projectParam = searchParams.get("project");
+
   const {
     activeDevice,
     webSerialSupported,
     firmwareSource,
+    builtInEntries,
+    selectedBuiltInId,
     repositorySlug,
     releaseSummary,
     isLoadingGithub,
@@ -25,12 +33,16 @@ export function FlashFeature(): JSX.Element {
     result,
     errorKind,
     errorMessage,
+    chipCompatibilityWarning,
+    firmwareProjectLabel,
+    firmwareVersionLabel,
     flashAddress,
     fileInputRef,
     ensureSupport,
     setFirmwareSource,
     setRepositorySlug,
     loadGitHubRepository,
+    selectBuiltInEntry,
     selectCatalogEntry,
     selectFirmwareFile,
     clearFirmware,
@@ -41,16 +53,41 @@ export function FlashFeature(): JSX.Element {
     ensureSupport();
   }, [ensureSupport]);
 
+  useEffect(() => {
+    if (projectParam === null || projectParam.length === 0) {
+      return;
+    }
+    if (builtInEntries.length === 0) {
+      return;
+    }
+    if (selectedBuiltInId === projectParam) {
+      return;
+    }
+    if (!builtInEntries.some((entry) => entry.id === projectParam)) {
+      return;
+    }
+    setFirmwareSource("builtin");
+    selectBuiltInEntry(projectParam);
+  }, [
+    builtInEntries,
+    projectParam,
+    selectBuiltInEntry,
+    selectedBuiltInId,
+    setFirmwareSource,
+  ]);
+
   return (
     <div>
       <PageHeader
-        title="Flash Firmware"
-        description="Select firmware from the catalog and write it to a connected ESP board."
+        title="Install Firmware"
+        description="Connect a device, choose a project, then click Install Firmware."
       />
       <FlashPanel
         activeDevice={activeDevice}
         webSerialSupported={webSerialSupported}
         firmwareSource={firmwareSource}
+        builtInEntries={builtInEntries}
+        selectedBuiltInId={selectedBuiltInId}
         repositorySlug={repositorySlug}
         releaseSummary={releaseSummary}
         isLoadingGithub={isLoadingGithub}
@@ -64,6 +101,9 @@ export function FlashFeature(): JSX.Element {
         result={result}
         errorKind={errorKind}
         errorMessage={errorMessage}
+        chipCompatibilityWarning={chipCompatibilityWarning}
+        firmwareProjectLabel={firmwareProjectLabel}
+        firmwareVersionLabel={firmwareVersionLabel}
         flashAddress={flashAddress}
         fileInputRef={fileInputRef}
         onFirmwareSourceChange={setFirmwareSource}
@@ -71,12 +111,13 @@ export function FlashFeature(): JSX.Element {
         onLoadGitHubRepository={() => {
           void loadGitHubRepository();
         }}
+        onSelectBuiltInEntry={selectBuiltInEntry}
         onSelectCatalogEntry={selectCatalogEntry}
         onSelectFile={(file) => {
           void selectFirmwareFile(file);
         }}
         onClearFile={clearFirmware}
-        onFlash={() => {
+        onInstall={() => {
           void startFlash();
         }}
       />

@@ -21,6 +21,13 @@ Internal product and architecture documentation.
 | Firmware Catalog (MVP)    | [features/firmware-catalog.md](./features/firmware-catalog.md)           |
 | Firmware Manifest         | [features/firmware-manifest.md](./features/firmware-manifest.md)         |
 | GitHub Firmware Provider  | [features/github-firmware-provider.md](./features/github-firmware-provider.md) |
+| Built-in Firmware Catalog | [features/built-in-firmware-catalog.md](./features/built-in-firmware-catalog.md) |
+| One-click Install         | [features/one-click-install.md](./features/one-click-install.md)         |
+| Filesystem Browser        | [features/filesystem-browser.md](./features/filesystem-browser.md)       |
+| Filesystem Transfer       | [features/filesystem-transfer.md](./features/filesystem-transfer.md)     |
+| Firmware Library          | [features/firmware-library.md](./features/firmware-library.md)           |
+| Public Beta Hardening     | [features/public-beta-hardening.md](./features/public-beta-hardening.md) |
+| Hardware compatibility    | [hardware-compatibility.md](./hardware-compatibility.md)                 |
 | Feature template          | [_templates/feature.md](./_templates/feature.md)                         |
 
 ## Process

@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 
 import { DeviceManagerProvider } from "@/app/device-context";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ConnectionLossWatchdog } from "@/features/devices/connection-loss-watchdog";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,7 +28,10 @@ export function AppProviders({ children }: AppProvidersProps): JSX.Element {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <TooltipProvider>
-          <DeviceManagerProvider>{children}</DeviceManagerProvider>
+          <DeviceManagerProvider>
+            <ConnectionLossWatchdog />
+            {children}
+          </DeviceManagerProvider>
         </TooltipProvider>
       </BrowserRouter>
     </QueryClientProvider>

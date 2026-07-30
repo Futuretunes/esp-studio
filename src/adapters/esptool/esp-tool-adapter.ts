@@ -104,6 +104,30 @@ export class EspToolAdapter {
   }
 
   /**
+   * Reads a contiguous region of flash memory.
+   *
+   * @param port - Already-open Web Serial port
+   * @param address - Absolute flash address
+   * @param size - Number of bytes to read (must be positive)
+   */
+  async readFlash(
+    port: EspToolSerialPort,
+    address: number,
+    size: number,
+  ): Promise<Uint8Array> {
+    if (!Number.isInteger(address) || address < 0) {
+      throw new Error("Flash read address must be a non-negative integer.");
+    }
+    if (!Number.isInteger(size) || size <= 0) {
+      throw new Error("Flash read size must be a positive integer.");
+    }
+
+    return this.#withBootloader(port, async (loader) => {
+      return loader.readFlash(address, size);
+    });
+  }
+
+  /**
    * Verifies on-device MD5 against the provided images.
    *
    * @param port - Already-open Web Serial port

@@ -17,10 +17,14 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 | 9b       | Firmware Catalog   | ✅     | Multi-provider catalog; LocalFirmwareProvider only  |
 | 9c       | Firmware Manifest  | ✅     | Canonical JSON schema + parser/validator            |
 | 9d       | GitHub Firmware    | ✅     | First remote FirmwareProvider (Releases + Flash UI) |
+| 9e       | Built-in Catalog   | ✅     | Static popular projects → GitHubFirmwareProvider    |
+| 9f       | One-click Install  | ✅     | Connect → pick project → Install Firmware           |
 | 10       | Firmware Plugins   | ⬜     | Installer contribution points + first plugins       |
-| 11       | Firmware Library   | ⬜     | Catalog browser + one-click install                 |
+| 11       | Firmware Library   | ✅     | Catalog browser + one-click install                 |
 | 12       | Serial Monitor     | ✅     | Minimal UTF-8 console over `CommunicationSession`   |
-| 13       | Filesystem         | ⬜     | SPIFFS / LittleFS browser                           |
+| 13       | Filesystem         | ✅     | SPIFFS / LittleFS browse-only browser               |
+| 13a      | Public Beta Harden | ✅     | Reliability, UX consistency, smoke tests            |
+| 13b      | FS Upload/Download | ✅     | Transfer files via FilesystemService + adapter        |
 | 14       | OTA                | ⬜     | Network update flows                                |
 | 15       | IDE                | ⬜     | Monaco-based editing shell                          |
 | 16       | Release v1.0       | ⬜     | Documented APIs, tests, at least one transport      |
@@ -96,22 +100,49 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 - Manifest discovery + `.bin` fallback; lazy download on `resolve()`.
 - Flash UI: Local File vs GitHub Repository (persisted slug).
 
+### Built-in Firmware Catalog ✅
+
+- Static curated projects (WLED, ESPHome, Tasmota, OpenMQTTGateway).
+- Flash UI cards configure `GitHubFirmwareProvider` by repository slug.
+- Sources: Built-in Catalog | GitHub Repository | Local File.
+
+### One-click Install ✅
+
+- Auto-load latest release and resolve preferred firmware option.
+- Primary **Install Firmware** action with device/firmware summary.
+- Chip preference ordering + incompatibility warning (options stay visible).
+
 ### Firmware Plugins ⬜
 
 - Plugin host MVP and firmware installer contributions.
 
-### Firmware Library ⬜
+### Firmware Library ✅
 
-- Library page browsing the catalog + one-click install.
+- Browse BuiltInCatalog with search/categories; Install deep-links to Flash one-click flow.
+- Recently used (localStorage); install history placeholder.
+- No remote search / ratings / OTA.
 
 ### Serial Monitor ✅
 
 - Acquire `CommunicationSession` ownership (`"serial-monitor"`); UTF-8 decode/encode in the UI layer.
 - Live output, auto-scroll, send text, connect/disconnect, clear (minimal).
 
-### Filesystem ⬜
+### Filesystem ✅
 
-- Tree browser, upload/download, safe path handling.
+- Browse-only SPIFFS / LittleFS tree via `FilesystemService` + `EspFilesystemAdapter`.
+- Upload / download / mutate deferred to FS Transfer milestone.
+
+### Public Beta Hardening ✅
+
+- Unexpected disconnect / permission loss handling and UI sync.
+- Consistent alerts, retries, empty/loading states; stale copy cleanup.
+- Practical `pnpm test` smoke suite (no hardware required).
+
+### FS Upload / Download ✅
+
+- Upload + download over existing FilesystemService / EspFilesystemAdapter.
+- Progress, overwrite confirmation; SPIFFS primary; LittleFS transfer deferred.
+- No rename/delete/mkdir.
 
 ### OTA ⬜
 

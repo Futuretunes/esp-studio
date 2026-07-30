@@ -34,7 +34,13 @@ type DeviceUiState = {
   webSerialSupported: boolean | null;
   isConnecting: boolean;
   isDisconnecting: boolean;
-  errorKind: "unsupported" | "cancelled" | "failed" | "disconnect" | null;
+  errorKind:
+    | "unsupported"
+    | "cancelled"
+    | "failed"
+    | "disconnect"
+    | "lost"
+    | null;
   errorMessage: string | null;
   activeDevice: DeviceSnapshot | null;
   setWebSerialSupported: (supported: boolean) => void;

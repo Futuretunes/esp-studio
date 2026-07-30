@@ -1,8 +1,10 @@
 import type { ConnectedDevice } from "@/types";
 
 /**
- * Device-facing service stubs.
- * Web Serial / flashing implementations intentionally deferred.
+ * Legacy device-facing service stub.
+ *
+ * Live device workflows use {@link import("@/core/device").DeviceManager}
+ * via `useDeviceManager()` — not this stub.
  */
 export type DeviceService = {
   listDevices: () => Promise<ConnectedDevice[]>;
