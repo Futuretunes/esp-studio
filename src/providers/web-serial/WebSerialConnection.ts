@@ -4,14 +4,16 @@ import type {
   DeviceConnectionState,
 } from "@/core/device";
 import { DeviceError } from "@/core/device";
+import type { TransportIo } from "@/core/transport";
 
 import type { WebSerialPort } from "./types";
+import { WebSerialTransportIo } from "./WebSerialTransportIo";
 
 /**
- * Capabilities advertised by a minimal Web Serial session.
+ * Capabilities advertised by a Web Serial session with raw byte IO.
  *
- * Streaming IO and flashing are intentionally deferred; `serial` is true
- * because the underlying transport is a serial port.
+ * Higher-level flashing remains deferred; `serial` is true because the
+ * transport can exchange bytes through {@link TransportIo}.
  */
 export const WEB_SERIAL_CAPABILITIES: DeviceCapabilities = {
   serial: true,
@@ -24,11 +26,12 @@ export const WEB_SERIAL_CAPABILITIES: DeviceCapabilities = {
 /**
  * {@link DeviceConnection} backed by a browser `SerialPort`.
  *
- * Does not expose readable/writable streams yet — Serial Monitor will own
- * that surface in a later milestone.
+ * Exposes raw byte IO via {@link WebSerialTransportIo}. Serial Monitor and
+ * framing logic stay outside this class.
  */
 export class WebSerialConnection implements DeviceConnection {
   readonly #port: WebSerialPort;
+  readonly #io: WebSerialTransportIo;
   #state: DeviceConnectionState;
   #lastError: Error | undefined;
 
@@ -37,6 +40,7 @@ export class WebSerialConnection implements DeviceConnection {
    */
   public constructor(port: WebSerialPort) {
     this.#port = port;
+    this.#io = new WebSerialTransportIo(port);
     this.#state = "connected";
   }
 
@@ -62,7 +66,14 @@ export class WebSerialConnection implements DeviceConnection {
   }
 
   /**
-   * Closes the underlying `SerialPort`.
+   * Raw byte stream for this connection (`Uint8Array` only).
+   */
+  public get io(): TransportIo {
+    return this.#io;
+  }
+
+  /**
+   * Closes transport IO (if open) and then the underlying `SerialPort`.
    *
    * Idempotent: repeated calls resolve without throwing once disconnected.
    */
@@ -74,6 +85,9 @@ export class WebSerialConnection implements DeviceConnection {
     this.#state = "disconnecting";
 
     try {
+      if (this.#io.state !== "closed") {
+        await this.#io.close();
+      }
       await this.#port.close();
       this.#state = "disconnected";
       this.#lastError = undefined;

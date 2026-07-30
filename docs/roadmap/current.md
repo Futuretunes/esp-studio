@@ -1,28 +1,26 @@
 # Current Focus
 
-**Active milestone:** Device Discovery UI — implementation complete
+**Active milestone:** Transport IO Layer — implementation complete
 
 ## Completed
 
-1. `docs/features/device-discovery.md`
-2. `DeviceManager` + `WebSerialProvider` registered in `AppProviders`
-3. Devices page: support detection, Connect Device (user gesture), status card, disconnect
-4. Friendly unsupported / cancelled / failed messages
+1. `docs/features/transport-io.md`
+2. Core `TransportIo` (`open` / `close` / `read` / `write` / `flush`, `Uint8Array` only)
+3. `DeviceConnection.io?` additive optional link
+4. `WebSerialTransportIo` + `WebSerialConnection.io`
 
 ## Still out of scope
 
-- Serial read/write streaming
-- Flashing / esptool-js
-- Serial Monitor parsing/UI
-- OTA / filesystem
-- Auto-reconnect / background scanning
+- Serial Monitor UI / ANSI / logging / line buffering
+- Flash Engine / packet parsers
+- Auto-reconnect
 
 ## Next up
 
-Define a transport-agnostic IO contract on (or beside) `DeviceConnection`, then **Serial Monitor** — or **Flash Engine** if flashing is prioritized first. Serial Monitor is the natural follow-on while a device session is already visible in the UI.
+**Serial Monitor** — document first, then build a minimal console that opens `connection.io`, decodes UTF-8 for display only, and writes user input as bytes. Do not put framing/ANSI in the transport layer.
 
 ## Related documents
 
-- [Device Discovery feature](../features/device-discovery.md)
+- [Transport IO feature](../features/transport-io.md)
 - [Web Serial feature](../features/web-serial.md)
 - [Backlog](./backlog.md)

@@ -12,6 +12,7 @@ Internal product and architecture documentation.
 | Device Layer feature      | [features/device-layer.md](./features/device-layer.md)           |
 | Web Serial provider       | [features/web-serial.md](./features/web-serial.md)               |
 | Device Discovery UI       | [features/device-discovery.md](./features/device-discovery.md)   |
+| Transport IO Layer        | [features/transport-io.md](./features/transport-io.md)           |
 | Feature template          | [_templates/feature.md](./_templates/feature.md)                 |
 
 ## Process

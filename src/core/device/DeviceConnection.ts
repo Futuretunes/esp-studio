@@ -1,3 +1,4 @@
+import type { TransportIo } from "../transport/TransportIo";
 import type { DeviceCapabilities } from "./DeviceCapabilities";
 import type { DeviceConnectionState } from "./DeviceInfo";
 
@@ -20,10 +21,18 @@ export type DeviceConnection = {
    */
   readonly lastError?: Error | undefined;
   /**
+   * Optional raw byte stream for this connection.
+   *
+   * Present when the transport can exchange `Uint8Array` payloads. Absent for
+   * connections that only support connect/disconnect metadata.
+   */
+  readonly io?: TransportIo | undefined;
+  /**
    * Closes the underlying transport session.
    *
    * Idempotent: calling `close` on an already-closed connection resolves
-   * without throwing.
+   * without throwing. Implementations that expose {@link io} should close IO
+   * before tearing down the transport.
    */
   close(): Promise<void>;
 };

@@ -11,6 +11,7 @@ export {
   isWebSerialSupported,
   WebSerialConnection,
   WebSerialProvider,
+  WebSerialTransportIo,
   WEB_SERIAL_CAPABILITIES,
   WEB_SERIAL_PROVIDER_ID,
   type WebSerialProviderOptions,

@@ -2,21 +2,22 @@
 
 Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ planned.
 
-| Priority | Item             | Status | Notes                                              |
-| -------- | ---------------- | ------ | -------------------------------------------------- |
-| 1        | Foundation       | ✅     | Vite/React/TS shell, routing, dark UI, tooling     |
-| 2        | Core             | 🟡     | `src/core/*` domain packages; Device Layer landed  |
-| 3        | Device Layer     | ✅     | Transport-agnostic device contracts + manager      |
-| 4        | Web Serial       | ✅     | First real `DeviceProvider` implementation         |
-| 5        | Device Discovery | ✅     | UX + APIs to list/request devices across providers |
-| 6        | Flash Engine     | ⬜     | Flash orchestration + esptool-js adapter           |
-| 7        | Firmware Plugins | ⬜     | Installer contribution points + first plugins      |
-| 8        | Firmware Library | ⬜     | Catalog, versions, local/remote artifacts          |
-| 9        | Serial Monitor   | ⬜     | Streaming console over `DeviceConnection`          |
-| 10       | Filesystem       | ⬜     | SPIFFS / LittleFS browser                          |
-| 11       | OTA              | ⬜     | Network update flows                               |
-| 12       | IDE              | ⬜     | Monaco-based editing shell                         |
-| 13       | Release v1.0     | ⬜     | Documented APIs, tests, at least one transport     |
+| Priority | Item             | Status | Notes                                               |
+| -------- | ---------------- | ------ | --------------------------------------------------- |
+| 1        | Foundation       | ✅     | Vite/React/TS shell, routing, dark UI, tooling      |
+| 2        | Core             | 🟡     | `src/core/*` domain packages; Device Layer landed   |
+| 3        | Device Layer     | ✅     | Transport-agnostic device contracts + manager       |
+| 4        | Web Serial       | ✅     | First real `DeviceProvider` implementation          |
+| 5        | Device Discovery | ✅     | UX + APIs to list/request devices across providers  |
+| 6        | Transport IO     | ✅     | Raw `Uint8Array` stream contract for all transports |
+| 7        | Flash Engine     | ⬜     | Flash orchestration + esptool-js adapter            |
+| 8        | Firmware Plugins | ⬜     | Installer contribution points + first plugins       |
+| 9        | Firmware Library | ⬜     | Catalog, versions, local/remote artifacts           |
+| 10       | Serial Monitor   | ⬜     | Streaming console over `TransportIo`                |
+| 11       | Filesystem       | ⬜     | SPIFFS / LittleFS browser                           |
+| 12       | OTA              | ⬜     | Network update flows                                |
+| 13       | IDE              | ⬜     | Monaco-based editing shell                          |
+| 14       | Release v1.0     | ⬜     | Documented APIs, tests, at least one transport      |
 
 ## Detail by milestone
 
@@ -47,6 +48,12 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 - `DeviceManager` exposed via React context; Zustand holds UI snapshots.
 - Persist recent devices where the transport allows (future).
 
+### Transport IO ✅
+
+- Core `TransportIo` contract (`open` / `close` / `read` / `write` / `flush`).
+- Web Serial implementation via `WebSerialTransportIo` on `DeviceConnection.io`.
+- Binary `Uint8Array` only; no Serial Monitor UI.
+
 ### Flash Engine ⬜
 
 - Progress events, abort, verification hooks.
@@ -62,6 +69,7 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 
 ### Serial Monitor ⬜
 
+- Consume `TransportIo` for read/write; UTF-8 decode only in the UI layer.
 - Baud configuration via capabilities, log buffer, export.
 
 ### Filesystem ⬜
