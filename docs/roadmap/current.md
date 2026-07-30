@@ -1,27 +1,28 @@
 # Current Focus
 
-**Active milestone:** Web Serial provider — implementation complete
+**Active milestone:** Device Discovery UI — implementation complete
 
 ## Completed
 
-1. `docs/features/web-serial.md`
-2. Minimal `WebSerialProvider` + `WebSerialConnection` under `src/providers/web-serial`
-3. Additive Device Layer helpers: `connectToDevice`, optional `baudRate`
+1. `docs/features/device-discovery.md`
+2. `DeviceManager` + `WebSerialProvider` registered in `AppProviders`
+3. Devices page: support detection, Connect Device (user gesture), status card, disconnect
+4. Friendly unsupported / cancelled / failed messages
 
 ## Still out of scope
 
+- Serial read/write streaming
 - Flashing / esptool-js
-- Serial Monitor streaming and parsing
-- Auto-reconnect
-- Devices UI wiring
-- WebUSB / Bluetooth / Network providers
+- Serial Monitor parsing/UI
+- OTA / filesystem
+- Auto-reconnect / background scanning
 
 ## Next up
 
-**Device Discovery UX** — wire `DeviceManager` + `WebSerialProvider` into the Devices feature (user-gesture connect flow), then Flash Engine.
+Define a transport-agnostic IO contract on (or beside) `DeviceConnection`, then **Serial Monitor** — or **Flash Engine** if flashing is prioritized first. Serial Monitor is the natural follow-on while a device session is already visible in the UI.
 
 ## Related documents
 
+- [Device Discovery feature](../features/device-discovery.md)
 - [Web Serial feature](../features/web-serial.md)
-- [Device Layer feature](../features/device-layer.md)
 - [Backlog](./backlog.md)

@@ -25,4 +25,5 @@ See `README.md` / `package.json` scripts for `pnpm lint`, `pnpm typecheck`, `pnp
 - Feature work belongs under `src/features/<feature>/`; route entry points stay thin in `src/pages/`.
 - **Docs first:** for every new feature, create/update `docs/features/<name>.md` (from `docs/_templates/feature.md`) before writing code. Architecture notes live under `docs/architecture/`; roadmap under `docs/roadmap/`.
 - Domain contracts live in `src/core/*` (no React, no Web Serial/WebUSB). Start with `@/core/device` (`DeviceManager` + `DeviceProvider`). Concrete transports belong in `src/providers/*` (Web Serial: `@/providers/web-serial`).
-- Register providers at the app composition root; do not import `src/providers/*` from `src/core/*`.
+- Register providers at the app composition root (`src/app/device-runtime.ts` + `DeviceManagerProvider`); do not import `src/providers/*` from `src/core/*`.
+- Devices UI talks to `useDeviceManager()` and stores serializable snapshots in Zustand (`useDeviceStore`). Never pass `SerialPort` into React state.

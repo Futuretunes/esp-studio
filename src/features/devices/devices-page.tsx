@@ -1,24 +1,186 @@
-import type { JSX } from "react";
+import { useEffect, useCallback, type JSX } from "react";
 
-import { FeaturePlaceholder } from "@/components/feature-placeholder";
+import { useDeviceManager } from "@/app/device-context";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { DeviceError } from "@/core/device";
+import { DeviceDiscoveryPanel } from "@/features/devices/device-discovery-panel";
+import {
+  isWebSerialSupported,
+  WEB_SERIAL_PROVIDER_ID,
+} from "@/providers/web-serial";
+import { useDeviceStore, type DeviceSnapshot } from "@/store";
 
+function toSnapshot(
+  device: {
+    id: string;
+    info: {
+      name: string;
+      providerId: string;
+      chipFamily: DeviceSnapshot["chipFamily"];
+      transportLabel?: string;
+    };
+    connection: { state: DeviceSnapshot["status"] };
+    capabilities: DeviceSnapshot["capabilities"];
+  },
+  providerLabel: string,
+): DeviceSnapshot {
+  const snapshot: DeviceSnapshot = {
+    id: device.id,
+    name: device.info.name,
+    providerId: device.info.providerId,
+    providerLabel,
+    chipFamily: device.info.chipFamily,
+    status: device.connection.state,
+    capabilities: device.capabilities,
+  };
+
+  if (device.info.transportLabel !== undefined) {
+    return { ...snapshot, transportLabel: device.info.transportLabel };
+  }
+
+  return snapshot;
+}
+
+function isCancellationError(error: unknown): boolean {
+  if (!(error instanceof DeviceError)) {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+  return message.includes("cancelled") || message.includes("canceled");
+}
+
+/**
+ * Devices feature: Web Serial discovery and connection status UI.
+ */
 export function DevicesFeature(): JSX.Element {
+  const manager = useDeviceManager();
+  const webSerialSupported = useDeviceStore((s) => s.webSerialSupported);
+  const isConnecting = useDeviceStore((s) => s.isConnecting);
+  const isDisconnecting = useDeviceStore((s) => s.isDisconnecting);
+  const activeDevice = useDeviceStore((s) => s.activeDevice);
+  const errorKind = useDeviceStore((s) => s.errorKind);
+  const errorMessage = useDeviceStore((s) => s.errorMessage);
+  const setWebSerialSupported = useDeviceStore((s) => s.setWebSerialSupported);
+  const setConnecting = useDeviceStore((s) => s.setConnecting);
+  const setDisconnecting = useDeviceStore((s) => s.setDisconnecting);
+  const setActiveDevice = useDeviceStore((s) => s.setActiveDevice);
+  const setError = useDeviceStore((s) => s.setError);
+  const clearError = useDeviceStore((s) => s.clearError);
+
+  useEffect(() => {
+    const supported = isWebSerialSupported();
+    setWebSerialSupported(supported);
+    if (!supported) {
+      setError("unsupported", "Web Serial is not available in this browser.");
+    }
+  }, [setError, setWebSerialSupported]);
+
+  const handleConnect = useCallback(async () => {
+    clearError();
+
+    if (!isWebSerialSupported()) {
+      setWebSerialSupported(false);
+      setError("unsupported", "Web Serial is not available in this browser.");
+      return;
+    }
+
+    setConnecting(true);
+
+    try {
+      const provider = manager.getProvider(WEB_SERIAL_PROVIDER_ID);
+      const device = await manager.connect(WEB_SERIAL_PROVIDER_ID);
+      setActiveDevice(toSnapshot(device, provider?.label ?? "Web Serial"));
+    } catch (error) {
+      setActiveDevice(null);
+
+      if (isCancellationError(error)) {
+        setError("cancelled", "No device was selected in the browser chooser.");
+      } else {
+        const detail =
+          error instanceof Error ? error.message : "Unknown connection error.";
+        setError("failed", detail);
+      }
+    } finally {
+      setConnecting(false);
+    }
+  }, [
+    clearError,
+    manager,
+    setActiveDevice,
+    setConnecting,
+    setError,
+    setWebSerialSupported,
+  ]);
+
+  const handleDisconnect = useCallback(async () => {
+    if (!activeDevice) {
+      return;
+    }
+
+    clearError();
+    setDisconnecting(true);
+
+    try {
+      await manager.disconnect(activeDevice.id);
+      setActiveDevice(null);
+    } catch (error) {
+      const detail =
+        error instanceof Error ? error.message : "Unknown disconnect error.";
+      setError("disconnect", detail);
+    } finally {
+      setDisconnecting(false);
+    }
+  }, [
+    activeDevice,
+    clearError,
+    manager,
+    setActiveDevice,
+    setDisconnecting,
+    setError,
+  ]);
+
+  const connectDisabled =
+    webSerialSupported === false || isConnecting || isDisconnecting;
+
   return (
     <div>
       <PageHeader
         title="Connect Device"
-        description="Discover and connect ESP8266 or ESP32 boards from the browser."
+        description="Discover and connect ESP8266 or ESP32 boards from the browser using Web Serial."
         actions={
-          <Button type="button" disabled>
-            Connect
-          </Button>
+          activeDevice ? (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isDisconnecting || isConnecting}
+              onClick={() => {
+                void handleDisconnect();
+              }}
+            >
+              {isDisconnecting ? "Disconnecting…" : "Disconnect"}
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              disabled={connectDisabled}
+              onClick={() => {
+                void handleConnect();
+              }}
+            >
+              {isConnecting ? "Connecting…" : "Connect Device"}
+            </Button>
+          )
         }
       />
-      <FeaturePlaceholder
-        title="Device connection coming soon"
-        description="Web Serial device discovery and connection management will live here. The connect flow is intentionally not implemented in this foundation."
+
+      <DeviceDiscoveryPanel
+        webSerialSupported={webSerialSupported}
+        isConnecting={isConnecting}
+        activeDevice={activeDevice}
+        errorKind={errorKind}
+        errorMessage={errorMessage}
       />
     </div>
   );

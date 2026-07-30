@@ -11,6 +11,7 @@ Internal product and architecture documentation.
 | Current focus             | [roadmap/current.md](./roadmap/current.md)                       |
 | Device Layer feature      | [features/device-layer.md](./features/device-layer.md)           |
 | Web Serial provider       | [features/web-serial.md](./features/web-serial.md)               |
+| Device Discovery UI       | [features/device-discovery.md](./features/device-discovery.md)   |
 | Feature template          | [_templates/feature.md](./_templates/feature.md)                 |
 
 ## Process
