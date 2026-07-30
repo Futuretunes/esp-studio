@@ -57,6 +57,8 @@ export type FlashOptions = FlashOperationOptions & {
     | "partition-table"
     | "boot-app0"
     | "application"
+    | "filesystem"
+    | "nvs"
     | "other"
   )[];
 };

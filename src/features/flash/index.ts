@@ -52,6 +52,16 @@ export {
   planFlashInstall,
   type FlashInstallPlan,
 } from "./flash-strategy";
+export {
+  buildProvisioningSummary,
+  formatProvisioningMode,
+  planProvisioningInstall,
+  resolveProvisioningFilesystem,
+  type ProvisioningFilesystemChoice,
+  type ProvisioningMode,
+  type ProvisioningPlan,
+  type ProvisioningSummary,
+} from "./provisioning-mode";
 export { FlashFeature } from "./flash-page";
 export { FlashPanel } from "./flash-panel";
 export {
@@ -64,4 +74,5 @@ export {
   useFlashWorkflow,
   type FlashFirmwareSource,
   type FlashUiErrorKind,
+  type PendingProvisioningConfirm,
 } from "./use-flash-workflow";

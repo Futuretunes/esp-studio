@@ -8,4 +8,5 @@ export {
   EspFilesystemAdapter,
   type EspFilesystemReadOptions,
   type EspFilesystemWriteOptions,
+  type FilesystemVolumeStats,
 } from "./EspFilesystemAdapter";

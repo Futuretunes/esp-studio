@@ -104,12 +104,16 @@ Root `/` lists filesystem **volumes** (partition labels) as directories. Expandi
 
 ## UI
 
-- Device summary + Refresh / Upload / Download
+- Device summary + Refresh / Upload / Download / Rename / Delete / New folder
+- Drag-and-drop files onto the device card when a directory is selected (reuses upload path)
+- Volume stats when a volume root is selected (`getVolumeStats`)
+- Optional text preview after download for small text-looking files (&lt;64KB)
 - Tree: expand / collapse directories (disabled while a root read is in flight)
 - Immediate “Reading filesystem…” status + spinner while listing (SPIFFS can take 10+s)
 - Single-flight Refresh: additional clicks are ignored until the in-flight read finishes or fails
 - File rows show size
 - Skeleton while loading; alerts for errors (busy alerts are not stacked with `DeviceBusyBanner`)
+- LittleFS mutate failures surface the adapter’s honest `unsupported` message
 
 ## Acceptance Criteria
 
@@ -118,13 +122,14 @@ Root `/` lists filesystem **volumes** (partition labels) as directories. Expandi
 - [x] `EspFilesystemAdapter` under `src/adapters/filesystem/` (no feature→esptool-js).
 - [x] Filesystem page: list, expand/collapse, refresh, loading/errors.
 - [x] Ownership `"filesystem-browser"` with release in `finally`.
-- [x] No upload / download / delete / rename / create.
+- [x] Upload / download / delete / rename / create folder (SPIFFS); LittleFS mutate → `unsupported`.
 - [x] `pnpm lint` / `typecheck` / `build` pass.
 
 ## Future Improvements
 
 - ~~Upload / download~~ → see [Filesystem Transfer](./filesystem-transfer.md).
-- Delete / rename / create folder.
+- ~~Delete / rename / create folder~~ (SPIFFS MVP).
+- ZIP upload / unpack in the browser (deferred — currently rejected with a clear message).
 - Writable LittleFS mutation (full CTZ).
 - Partition picker when multiple volumes exist.
 - Editor open-from-path.

@@ -17,11 +17,13 @@ export {
 export {
   FIRMWARE_COMPATIBLE_CHIP_FAMILIES,
   FIRMWARE_MANIFEST_SCHEMA_VERSION,
+  FIRMWARE_MANIFEST_SUPPORTED_SCHEMA_VERSIONS,
   createLocalFirmwareManifestDocument,
   isFirmwareCompatibleChipFamily,
   parseFirmwareAddress,
   toCatalogManifest,
   type FirmwareCompatibleChipFamily,
+  type FirmwareFilesystemSupport,
   type FirmwareManifestDocument,
   type FirmwareManifestImageRef,
   type FirmwareManifestIssueCode,

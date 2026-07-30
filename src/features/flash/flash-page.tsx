@@ -30,6 +30,13 @@ export function FlashFeature(): JSX.Element {
     resolved,
     primaryImage,
     packageSummary,
+    provisioningMode,
+    setProvisioningMode,
+    filesystemChoice,
+    setFilesystemChoice,
+    factoryEraseTyped,
+    setFactoryEraseTyped,
+    provisioningSummary,
     isFlashing,
     progress,
     result,
@@ -90,7 +97,7 @@ export function FlashFeature(): JSX.Element {
     <div className="space-y-4">
       <PageHeader
         title="Install Firmware"
-        description="Connect a device, choose a project, then click Install Firmware."
+        description="Connect a device, choose a project and install mode, then install."
       />
       <DeviceBusyBanner attempting="flash" />
       <FlashPanel
@@ -110,6 +117,10 @@ export function FlashFeature(): JSX.Element {
         resolved={resolved}
         primaryImage={primaryImage}
         packageSummary={packageSummary}
+        provisioningMode={provisioningMode}
+        filesystemChoice={filesystemChoice}
+        factoryEraseTyped={factoryEraseTyped}
+        provisioningSummary={provisioningSummary}
         isFlashing={isFlashing}
         progress={progress}
         result={result}
@@ -124,6 +135,9 @@ export function FlashFeature(): JSX.Element {
         flashAddress={flashAddress}
         fileInputRef={fileInputRef}
         onFirmwareSourceChange={setFirmwareSource}
+        onProvisioningModeChange={setProvisioningMode}
+        onFilesystemChoiceChange={setFilesystemChoice}
+        onFactoryEraseTypedChange={setFactoryEraseTyped}
         onRepositorySlugChange={setRepositorySlug}
         onLoadGitHubRepository={() => {
           void loadGitHubRepository();

@@ -24,18 +24,18 @@ See also:
 
 ## Purpose
 
-- Canonical JSON document: `FirmwareManifestDocument` (`schemaVersion: 1`).
+- Canonical JSON document: `FirmwareManifestDocument` (`schemaVersion: 1 | 2`).
 - Parse unknown JSON → typed document or typed validation issues.
 - Validate required fields, duplicate addresses/ids, chip families, and image existence (when blobs are supplied).
 - Keep catalog summary `FirmwareManifest` as the lightweight runtime projection used by UI listing.
 
-## JSON schema (version 1)
+## JSON schema (version 1 and 2)
 
 Top-level object:
 
 | Field | Type | Required | Notes |
 | ----- | ---- | -------- | ----- |
-| `schemaVersion` | `1` | yes | Only `1` accepted today |
+| `schemaVersion` | `1` \| `2` | yes | Parser accepts `1` and `2` (`FIRMWARE_MANIFEST_SUPPORTED_SCHEMA_VERSIONS`) |
 | `id` | string | yes | Non-empty package id |
 | `title` | string | yes | Display title |
 | `description` | string | no | Longer blurb |
@@ -44,6 +44,7 @@ Top-level object:
 | `providerId` | string | no | Filled by provider when known |
 | `chipFamilies` | string[] | no | Empty/omitted = any chip; else ESP Studio chip ids |
 | `packageKind` | `"complete" \| "application-only"` | no | Explicit package layout; when omitted Flash derives from image labels/ids/paths |
+| `filesystemSupport` | `"none" \| "spiffs" \| "littlefs" \| "both"` | no | **V2** — layouts the package can provision; Install auto-picks a single value, or asks when `"both"` |
 | `images` | object[] | yes | At least one image |
 
 Each `images[]` entry:
@@ -147,10 +148,19 @@ See also [Pre-Flash Firmware Inspection](./pre-flash-inspection.md) for blank-de
 
 | Rule | Behavior |
 | ---- | -------- |
-| Current | `FIRMWARE_MANIFEST_SCHEMA_VERSION = 1` |
+| Current writers | Prefer `FIRMWARE_MANIFEST_SCHEMA_VERSION = 2` |
+| Accepted | `FIRMWARE_MANIFEST_SUPPORTED_SCHEMA_VERSIONS = [1, 2]` |
 | Unknown version | Validation fails with `unsupported-schema-version` |
 | Additive fields | Allowed in future minors of the same `schemaVersion` only if ignored by older validators |
 | Breaking changes | Require `schemaVersion` bump |
+
+### Schema 2 additions
+
+| Field | Notes |
+| ----- | ----- |
+| `filesystemSupport` | Optional; `"none" \| "spiffs" \| "littlefs" \| "both"`. Used by [Provisioning Workflow](./provisioning-workflow.md) for Reinstall FS selection. |
+
+Schema `1` documents remain valid without `filesystemSupport`.
 
 ## Metadata
 
@@ -182,7 +192,7 @@ Allowed `chipFamilies` values match Device Layer `ChipFamily` **except** `"unkno
 | ----- | ---- |
 | Missing/empty required field | `missing-field` |
 | Wrong JSON type | `invalid-type` |
-| `schemaVersion` ≠ 1 | `unsupported-schema-version` |
+| `schemaVersion` ≠ 1 or 2 | `unsupported-schema-version` |
 | Unsupported chip id | `unsupported-chip-family` |
 | Two images share an address | `duplicate-address` |
 | Two images share an id | `duplicate-image-id` |

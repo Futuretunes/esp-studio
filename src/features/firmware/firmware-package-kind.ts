@@ -24,6 +24,8 @@ export type FirmwareImageRole =
   | "partition-table"
   | "boot-app0"
   | "application"
+  | "filesystem"
+  | "nvs"
   | "other";
 
 /**
@@ -85,6 +87,10 @@ export function formatFirmwareImageRoleLabel(
       return "boot_app0";
     case "application":
       return "Application";
+    case "filesystem":
+      return "Filesystem";
+    case "nvs":
+      return "NVS defaults";
     case "other":
       return fallbackLabel;
   }
@@ -120,6 +126,19 @@ export function classifyFirmwareImageRole(image: {
 
   if (/\bpartition[-_ ]?table\b/.test(haystack) || /\bpartitions?\b/.test(haystack)) {
     return "partition-table";
+  }
+
+  if (
+    /\bspiffs\b/.test(haystack) ||
+    /\blittlefs\b/.test(haystack) ||
+    /\bfilesystem\b/.test(haystack) ||
+    /\bstorage\b/.test(haystack)
+  ) {
+    return "filesystem";
+  }
+
+  if (/\bnvs\b/.test(haystack)) {
+    return "nvs";
   }
 
   if (

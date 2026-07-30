@@ -27,12 +27,17 @@ import { formatFlashAddress } from "@/features/flash/format-flash-address";
 import { formatFirmwareSize } from "@/features/flash/format-firmware-size";
 import type { FlashProgress } from "@/features/flash/FlashProgress";
 import type { FlashResult } from "@/features/flash/FlashResult";
-import type { FlashInspectionReport } from "@/features/flash/flash-inspection";
-import type { FlashInstallPlan } from "@/features/flash/flash-strategy";
+import {
+  formatProvisioningMode,
+  type ProvisioningFilesystemChoice,
+  type ProvisioningMode,
+  type ProvisioningSummary,
+} from "@/features/flash/provisioning-mode";
 import {
   catalogSelectionKey,
   type FlashFirmwareSource,
   type FlashUiErrorKind,
+  type PendingProvisioningConfirm,
 } from "@/features/flash/use-flash-workflow";
 import type { BuiltInCatalogEntry } from "@/features/firmware/catalog";
 import type { FirmwareCatalogEntry } from "@/features/firmware/FirmwareProvider";
@@ -48,10 +53,7 @@ import { formatChipLabel } from "@/features/identification/format-chip-label";
 import { cn } from "@/lib/utils";
 import { useDeviceStore, type DeviceSnapshot } from "@/store";
 
-type PendingOverwriteState = {
-  readonly report: FlashInspectionReport;
-  readonly plan: Extract<FlashInstallPlan, { action: "confirm" }>;
-};
+type PendingOverwriteState = PendingProvisioningConfirm;
 
 type FlashPanelProps = {
   activeDevice: DeviceSnapshot | null;
@@ -70,6 +72,10 @@ type FlashPanelProps = {
   resolved: FirmwareResolvedPackage | null;
   primaryImage: FirmwareImage | null;
   packageSummary: FirmwarePackageSummary | null;
+  provisioningMode: ProvisioningMode;
+  filesystemChoice: ProvisioningFilesystemChoice;
+  factoryEraseTyped: string;
+  provisioningSummary: ProvisioningSummary;
   isFlashing: boolean;
   progress: FlashProgress | null;
   result: FlashResult | null;
@@ -84,6 +90,9 @@ type FlashPanelProps = {
   flashAddress: number;
   fileInputRef: RefObject<HTMLInputElement | null>;
   onFirmwareSourceChange: (source: FlashFirmwareSource) => void;
+  onProvisioningModeChange: (mode: ProvisioningMode) => void;
+  onFilesystemChoiceChange: (choice: ProvisioningFilesystemChoice) => void;
+  onFactoryEraseTypedChange: (value: string) => void;
   onRepositorySlugChange: (slug: string) => void;
   onLoadGitHubRepository: () => void;
   onSelectBuiltInEntry: (entryId: string) => void;
@@ -129,19 +138,29 @@ function stageLabel(stage: FlashProgress["stage"]): string {
 function overwriteDialogTitle(
   pending: PendingOverwriteState,
 ): string {
-  if (pending.plan.code === "app-only-preserve") {
-    return "Application-only firmware";
+  switch (pending.plan.code) {
+    case "update-app":
+      return "Update firmware";
+    case "reinstall":
+      return "Reinstall firmware";
+    case "factory-erase":
+      return "Factory erase";
   }
-  switch (pending.report.outcome) {
-    case "existing":
-      return "Existing firmware detected";
-    case "unknown":
-      return "Firmware could not be identified";
-    case "failed":
-      return "Flash inspection failed";
-    case "blank":
-      return "Device appears empty";
+}
+
+function formatFilesystemLabel(
+  value: ProvisioningFilesystemChoice | "unknown" | null | undefined,
+): string {
+  if (value === "spiffs") {
+    return "SPIFFS";
   }
+  if (value === "littlefs") {
+    return "LittleFS";
+  }
+  if (value === "unknown") {
+    return "Unknown";
+  }
+  return "—";
 }
 
 function formatPublishedDate(value: string | null): string {
@@ -194,6 +213,10 @@ export function FlashPanel({
   resolved,
   primaryImage,
   packageSummary,
+  provisioningMode,
+  filesystemChoice,
+  factoryEraseTyped,
+  provisioningSummary,
   isFlashing,
   progress,
   result,
@@ -208,6 +231,9 @@ export function FlashPanel({
   flashAddress: _flashAddress,
   fileInputRef,
   onFirmwareSourceChange,
+  onProvisioningModeChange,
+  onFilesystemChoiceChange,
+  onFactoryEraseTypedChange,
   onRepositorySlugChange,
   onLoadGitHubRepository,
   onSelectBuiltInEntry,
@@ -224,6 +250,9 @@ export function FlashPanel({
     isFlashing || isLoadingGithub || isResolving || pendingOverwrite !== null;
   const operationOwner = useDeviceStore((state) => state.operationOwner);
   const showInlineBusyAlert = errorKind === "busy" && operationOwner === null;
+  const typedEraseOk =
+    !pendingOverwrite?.plan.requireTypedErase ||
+    factoryEraseTyped === "ERASE";
   const installDisabled =
     unsupported ||
     busy ||
@@ -236,6 +265,9 @@ export function FlashPanel({
     showGitHubOptions &&
     releaseSummary !== null &&
     catalogEntries.length > 1;
+  const filesystemSupport = resolved?.manifest.filesystemSupport;
+  const showFilesystemPicker =
+    provisioningMode === "reinstall" && filesystemSupport === "both";
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
@@ -250,6 +282,17 @@ export function FlashPanel({
     const value = event.target.value;
     if (value === "builtin" || value === "github" || value === "local") {
       onFirmwareSourceChange(value);
+    }
+  };
+
+  const handleModeChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    const value = event.target.value;
+    if (
+      value === "update" ||
+      value === "reinstall" ||
+      value === "factory-erase"
+    ) {
+      onProvisioningModeChange(value);
     }
   };
 
@@ -435,7 +478,7 @@ export function FlashPanel({
 
       {errorKind === "blocked" ? (
         <Alert variant="warning">
-          <AlertTitle>Cannot install on blank device</AlertTitle>
+          <AlertTitle>Cannot install</AlertTitle>
           <AlertDescription className="space-y-3">
             <p className="whitespace-pre-line">
               {errorMessage ??
@@ -581,7 +624,27 @@ export function FlashPanel({
                 </dl>
               </div>
             </div>
-            {pendingOverwrite.plan.preserveBootloader ? null : (
+            {pendingOverwrite.plan.requireTypedErase ? (
+              <div className="space-y-2">
+                <label
+                  htmlFor="factory-erase-confirm"
+                  className="text-muted-foreground text-xs"
+                >
+                  Type ERASE to confirm
+                </label>
+                <Input
+                  id="factory-erase-confirm"
+                  value={factoryEraseTyped}
+                  autoComplete="off"
+                  spellCheck={false}
+                  disabled={busy}
+                  placeholder="ERASE"
+                  onChange={(event) => {
+                    onFactoryEraseTypedChange(event.target.value);
+                  }}
+                />
+              </div>
+            ) : pendingOverwrite.plan.preserveBootloader ? null : (
               <p>
                 Installing new firmware will overwrite the existing installation.
               </p>
@@ -600,10 +663,12 @@ export function FlashPanel({
                 type="button"
                 size="sm"
                 variant="destructive"
-                disabled={busy || !primaryImage}
+                disabled={busy || !primaryImage || !typedEraseOk}
                 onClick={onConfirmOverwrite}
               >
-                Overwrite Firmware
+                {pendingOverwrite.plan.requireTypedErase
+                  ? "Erase and Install"
+                  : "Overwrite Firmware"}
               </Button>
             </div>
           </AlertDescription>
@@ -623,9 +688,9 @@ export function FlashPanel({
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
           <div className="space-y-1.5">
-            <CardTitle>Install summary</CardTitle>
+            <CardTitle>Provisioning summary</CardTitle>
             <CardDescription>
-              Device and firmware ready for one-click install.
+              Choose an install mode, review what will change, then install.
             </CardDescription>
           </div>
           {activeDevice ? (
@@ -640,60 +705,188 @@ export function FlashPanel({
             <Badge variant="secondary">No device</Badge>
           )}
         </CardHeader>
-        <CardContent>
-          <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <div>
-              <dt className="text-muted-foreground text-xs">Device</dt>
-              <dd className="text-sm font-medium">
-                {activeDevice?.name ?? "Not connected"}
-              </dd>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <label
+              htmlFor="provisioning-mode-select"
+              className="text-muted-foreground text-xs"
+            >
+              Install mode
+            </label>
+            <select
+              id="provisioning-mode-select"
+              value={provisioningMode}
+              disabled={busy || unsupported}
+              onChange={handleModeChange}
+              className={cn(
+                "border-input bg-background ring-offset-background focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+              )}
+            >
+              <option value="update">Update firmware</option>
+              <option value="reinstall">Reinstall firmware</option>
+              <option value="factory-erase">Factory erase</option>
+            </select>
+          </div>
+
+          {showFilesystemPicker ? (
+            <fieldset className="space-y-2">
+              <legend className="text-muted-foreground text-xs">
+                Filesystem layout
+              </legend>
+              <div className="flex flex-wrap gap-4 text-sm">
+                <label className="inline-flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="filesystem-choice"
+                    value="littlefs"
+                    checked={filesystemChoice === "littlefs"}
+                    disabled={busy || unsupported}
+                    onChange={() => {
+                      onFilesystemChoiceChange("littlefs");
+                    }}
+                  />
+                  LittleFS
+                </label>
+                <label className="inline-flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="filesystem-choice"
+                    value="spiffs"
+                    checked={filesystemChoice === "spiffs"}
+                    disabled={busy || unsupported}
+                    onChange={() => {
+                      onFilesystemChoiceChange("spiffs");
+                    }}
+                  />
+                  SPIFFS
+                </label>
+              </div>
+            </fieldset>
+          ) : null}
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Current</p>
+              <dl className="grid gap-2">
+                <div>
+                  <dt className="text-muted-foreground text-xs">Chip</dt>
+                  <dd className="text-sm font-medium">
+                    {provisioningSummary.chipLabel ??
+                      (activeDevice
+                        ? formatChipLabel(activeDevice.chipFamily)
+                        : "—")}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground text-xs">Flash size</dt>
+                  <dd className="text-sm font-medium">
+                    {provisioningSummary.flashSize ?? "—"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground text-xs">Filesystem</dt>
+                  <dd className="text-sm font-medium">
+                    {formatFilesystemLabel(provisioningSummary.currentFilesystem)}
+                  </dd>
+                </div>
+              </dl>
             </div>
-            <div>
-              <dt className="text-muted-foreground text-xs">Chip</dt>
-              <dd className="text-sm font-medium">
-                {activeDevice
-                  ? formatChipLabel(activeDevice.chipFamily)
-                  : "—"}
-              </dd>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">New</p>
+              <dl className="grid gap-2">
+                <div>
+                  <dt className="text-muted-foreground text-xs">Project</dt>
+                  <dd className="truncate text-sm font-medium">
+                    {provisioningSummary.projectLabel ?? "—"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground text-xs">Version</dt>
+                  <dd className="text-sm font-medium">
+                    {provisioningSummary.versionLabel ?? "—"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground text-xs">Filesystem</dt>
+                  <dd className="text-sm font-medium">
+                    {formatFilesystemLabel(
+                      provisioningSummary.selectedFilesystem,
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground text-xs">Package</dt>
+                  <dd className="text-sm font-medium">
+                    {packageSummary
+                      ? formatFirmwarePackageKind(packageSummary.kind)
+                      : "—"}
+                  </dd>
+                </div>
+              </dl>
             </div>
-            <div>
-              <dt className="text-muted-foreground text-xs">Firmware project</dt>
-              <dd className="truncate text-sm font-medium">
-                {firmwareProjectLabel ?? "—"}
-              </dd>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Operation</p>
+              <dl className="grid gap-2">
+                <div>
+                  <dt className="text-muted-foreground text-xs">Mode</dt>
+                  <dd className="text-sm font-medium">
+                    {formatProvisioningMode(provisioningSummary.mode)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground text-xs">Device</dt>
+                  <dd className="text-sm font-medium">
+                    {activeDevice?.name ?? "Not connected"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground text-xs">Size</dt>
+                  <dd className="text-sm font-medium">
+                    {resolved && resolved.images.length > 0
+                      ? formatFirmwareSize(
+                          resolved.images.reduce(
+                            (total, image) => total + image.size,
+                            0,
+                          ),
+                        )
+                      : isResolving || isLoadingGithub
+                        ? "Loading…"
+                        : "—"}
+                  </dd>
+                </div>
+              </dl>
             </div>
-            <div>
-              <dt className="text-muted-foreground text-xs">Firmware version</dt>
-              <dd className="text-sm font-medium">
-                {firmwareVersionLabel ?? "—"}
-              </dd>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-1">
+              <p className="text-muted-foreground text-xs">Erased / overwritten</p>
+              <ul className="space-y-1 text-sm">
+                {provisioningSummary.erases.map((item) => (
+                  <li key={`erase-${item}`}>• {item}</li>
+                ))}
+              </ul>
             </div>
-            <div>
-              <dt className="text-muted-foreground text-xs">Firmware type</dt>
-              <dd className="text-sm font-medium">
-                {packageSummary
-                  ? formatFirmwarePackageKind(packageSummary.kind)
-                  : "—"}
-              </dd>
+            <div className="space-y-1">
+              <p className="text-muted-foreground text-xs">Preserved</p>
+              <ul className="space-y-1 text-sm">
+                {provisioningSummary.preserves.map((item) => (
+                  <li key={`preserve-${item}`}>• {item}</li>
+                ))}
+              </ul>
             </div>
-            <div>
-              <dt className="text-muted-foreground text-xs">Firmware size</dt>
-              <dd className="text-sm font-medium">
-                {resolved && resolved.images.length > 0
-                  ? formatFirmwareSize(
-                      resolved.images.reduce(
-                        (total, image) => total + image.size,
-                        0,
-                      ),
-                    )
-                  : isResolving || isLoadingGithub
-                    ? "Loading…"
-                    : "—"}
-              </dd>
+            <div className="space-y-1">
+              <p className="text-muted-foreground text-xs">Written</p>
+              <ul className="space-y-1 text-sm">
+                {provisioningSummary.writes.map((item) => (
+                  <li key={`write-${item}`}>• {item}</li>
+                ))}
+              </ul>
             </div>
-          </dl>
+          </div>
+
           {packageSummary ? (
-            <div className="mt-4 space-y-2">
+            <div className="space-y-2">
               <p className="text-muted-foreground text-xs">Images to write</p>
               <ul className="space-y-1 text-sm">
                 {packageSummary.images
@@ -746,7 +939,9 @@ export function FlashPanel({
               ? "Installing…"
               : isResolving || isLoadingGithub
                 ? "Preparing…"
-                : "Install Firmware"}
+                : provisioningMode === "factory-erase"
+                  ? "Factory Erase & Install"
+                  : "Install Firmware"}
           </Button>
         </CardFooter>
       </Card>

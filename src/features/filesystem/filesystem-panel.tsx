@@ -5,8 +5,11 @@ import {
   Download,
   File,
   Folder,
+  FolderPlus,
   Loader2,
+  Pencil,
   RefreshCw,
+  Trash2,
   Upload,
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -49,6 +52,10 @@ export function FilesystemPanel(): JSX.Element {
     errorCode,
     errorMessage,
     pendingUpload,
+    pendingDelete,
+    volumeStats,
+    textPreview,
+    isDragOver,
     fileInputRef,
     refreshRoot,
     toggleDirectory,
@@ -57,7 +64,17 @@ export function FilesystemPanel(): JSX.Element {
     handleUploadFileChosen,
     confirmOverwrite,
     cancelOverwrite,
+    requestDelete,
+    confirmDelete,
+    cancelDelete,
+    renameSelected,
+    createFolder,
     downloadSelected,
+    clearTextPreview,
+    onDragEnter,
+    onDragOver,
+    onDragLeave,
+    onDrop,
   } = useFilesystemBrowser();
 
   const unsupported = webSerialSupported === false;
@@ -68,6 +85,15 @@ export function FilesystemPanel(): JSX.Element {
     unsupported || busy || !activeDevice || selectedKind !== "directory";
   const downloadDisabled =
     unsupported || busy || !activeDevice || selectedKind !== "file";
+  const renameDisabled = downloadDisabled;
+  const deleteDisabled =
+    unsupported ||
+    busy ||
+    !activeDevice ||
+    selectedPath === null ||
+    selectedKind === null ||
+    isVolumeRootPath(selectedPath);
+  const createFolderDisabled = uploadDisabled;
   /** Cross-page DeviceBusyBanner already covers other owners — avoid stacking. */
   const showInlineBusyAlert =
     errorMessage !== null &&
@@ -93,7 +119,9 @@ export function FilesystemPanel(): JSX.Element {
         <Alert variant="warning">
           <AlertTitle>
             {errorCode === "unsupported" && errorMessage
-              ? "Unsupported"
+              ? /littlefs/iu.test(errorMessage)
+                ? "LittleFS unsupported"
+                : "Unsupported"
               : "Browser unsupported"}
           </AlertTitle>
           <AlertDescription>
@@ -153,6 +181,16 @@ export function FilesystemPanel(): JSX.Element {
               <Button
                 type="button"
                 size="sm"
+                autoFocus
+                disabled={busy}
+                onClick={cancelOverwrite}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
                 disabled={busy}
                 onClick={() => {
                   void confirmOverwrite();
@@ -160,14 +198,40 @@ export function FilesystemPanel(): JSX.Element {
               >
                 Overwrite
               </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {pendingDelete ? (
+        <Alert variant="warning">
+          <AlertTitle>Delete {pendingDelete.kind}?</AlertTitle>
+          <AlertDescription className="space-y-3">
+            <p className="font-mono text-sm">{pendingDelete.path}</p>
+            <p>
+              This removes the {pendingDelete.kind} from the on-device
+              filesystem image. Cancel is the default.
+            </p>
+            <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
                 size="sm"
-                variant="secondary"
+                autoFocus
                 disabled={busy}
-                onClick={cancelOverwrite}
+                onClick={cancelDelete}
               >
                 Cancel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                disabled={busy}
+                onClick={() => {
+                  void confirmDelete();
+                }}
+              >
+                Delete
               </Button>
             </div>
           </AlertDescription>
@@ -214,12 +278,21 @@ export function FilesystemPanel(): JSX.Element {
       ) : null}
 
       {activeDevice ? (
-        <Card>
+        <Card
+          className={cn(isDragOver && "ring-primary ring-2")}
+          onDragEnter={onDragEnter}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
+        >
           <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
             <div className="space-y-1.5">
               <CardTitle>{activeDevice.name}</CardTitle>
               <CardDescription>
                 {activeDevice.transportLabel ?? "Serial port"}
+                {selectedKind === "directory"
+                  ? " · Drop files onto this card to upload into the selected folder"
+                  : null}
               </CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -244,6 +317,30 @@ export function FilesystemPanel(): JSX.Element {
                 type="button"
                 variant="secondary"
                 size="sm"
+                disabled={createFolderDisabled}
+                onClick={() => {
+                  void createFolder();
+                }}
+              >
+                <FolderPlus className="size-3.5" />
+                New folder
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={renameDisabled}
+                onClick={() => {
+                  void renameSelected();
+                }}
+              >
+                <Pencil className="size-3.5" />
+                Rename
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
                 disabled={downloadDisabled}
                 onClick={() => {
                   void downloadSelected();
@@ -251,6 +348,16 @@ export function FilesystemPanel(): JSX.Element {
               >
                 <Download className="size-3.5" />
                 Download
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={deleteDisabled}
+                onClick={requestDelete}
+              >
+                <Trash2 className="size-3.5" />
+                Delete
               </Button>
               <Button
                 type="button"
@@ -289,6 +396,42 @@ export function FilesystemPanel(): JSX.Element {
               </div>
             </dl>
 
+            {volumeStats ? (
+              <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <dt className="text-muted-foreground text-xs">Volume</dt>
+                  <dd className="text-sm font-medium">{volumeStats.label}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground text-xs">Format</dt>
+                  <dd className="text-sm font-medium">
+                    {volumeStats.format === "spiffs"
+                      ? "SPIFFS"
+                      : volumeStats.format === "littlefs"
+                        ? "LittleFS"
+                        : "Unknown"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground text-xs">Used / total</dt>
+                  <dd className="text-sm font-medium">
+                    {volumeStats.usedBytes === null
+                      ? `— / ${formatFirmwareSize(volumeStats.totalBytes)}`
+                      : `${formatFirmwareSize(volumeStats.usedBytes)} / ${formatFirmwareSize(volumeStats.totalBytes)}`}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground text-xs">Entries</dt>
+                  <dd className="text-sm font-medium">
+                    {volumeStats.fileCount} files
+                    {volumeStats.directoryCount > 0
+                      ? ` · ${String(volumeStats.directoryCount)} dirs`
+                      : ""}
+                  </dd>
+                </div>
+              </dl>
+            ) : null}
+
             {readingFilesystem ? (
               <div
                 className="text-muted-foreground flex items-center gap-2 text-sm"
@@ -313,6 +456,27 @@ export function FilesystemPanel(): JSX.Element {
                 <Progress value={transferProgress?.percent ?? 0} />
               </div>
             ) : null}
+
+            {textPreview ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium">
+                    Preview · {textPreview.name}
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={clearTextPreview}
+                  >
+                    Close
+                  </Button>
+                </div>
+                <pre className="bg-muted max-h-64 overflow-auto rounded-md p-3 font-mono text-xs whitespace-pre-wrap">
+                  {textPreview.text}
+                </pre>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       ) : null}
@@ -321,9 +485,9 @@ export function FilesystemPanel(): JSX.Element {
         <CardHeader>
           <CardTitle>Root directory</CardTitle>
           <CardDescription>
-            Select a volume or folder to upload into, or a file to download.
-            SPIFFS transfers are supported in this MVP; LittleFS transfer may be
-            unsupported depending on the image.
+            Select a volume or folder to upload into, or a file to download,
+            rename, or delete. SPIFFS mutate is supported in this MVP; LittleFS
+            writes return an explicit unsupported error.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -373,6 +537,11 @@ export function FilesystemPanel(): JSX.Element {
       </Card>
     </div>
   );
+}
+
+function isVolumeRootPath(path: string): boolean {
+  const parts = path.split("/").filter(Boolean);
+  return parts.length === 1;
 }
 
 type FilesystemTreeNodeProps = {

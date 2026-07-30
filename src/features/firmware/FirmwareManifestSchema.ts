@@ -11,8 +11,15 @@ import type { FirmwareManifest } from "@/features/firmware/FirmwareManifest";
 
 /**
  * Current firmware manifest JSON schema version.
+ *
+ * Parser accepts `1` and `2`. Writers should prefer `2` for new packages.
  */
-export const FIRMWARE_MANIFEST_SCHEMA_VERSION = 1 as const;
+export const FIRMWARE_MANIFEST_SCHEMA_VERSION = 2 as const;
+
+/**
+ * Schema versions accepted by the parser / validator.
+ */
+export const FIRMWARE_MANIFEST_SUPPORTED_SCHEMA_VERSIONS = [1, 2] as const;
 
 /**
  * Chip families that may appear in `chipFamilies` (excludes `"unknown"`).
@@ -61,16 +68,39 @@ export type FirmwareManifestImageRef = {
 };
 
 /**
+ * Known image role labels (documentation / classification helpers).
+ *
+ * Manifest `label` / `id` / `path` tokens map to these roles.
+ */
+export const FIRMWARE_IMAGE_ROLE_LABELS = [
+  "bootloader",
+  "partition-table",
+  "boot_app0",
+  "application",
+  "filesystem",
+  "nvs",
+] as const;
+
+/**
  * Explicit package layout kind (optional; derived from images when omitted).
  */
 export type FirmwareManifestPackageKind = "complete" | "application-only";
 
 /**
- * Canonical firmware package document (`schemaVersion: 1`).
+ * Filesystem layouts a complete package can provision.
+ */
+export type FirmwareFilesystemSupport =
+  | "none"
+  | "spiffs"
+  | "littlefs"
+  | "both";
+
+/**
+ * Canonical firmware package document (`schemaVersion: 1 | 2`).
  */
 export type FirmwareManifestDocument = {
-  /** Schema version; must equal {@link FIRMWARE_MANIFEST_SCHEMA_VERSION}. */
-  readonly schemaVersion: typeof FIRMWARE_MANIFEST_SCHEMA_VERSION;
+  /** Schema version; `1` or `2`. */
+  readonly schemaVersion: 1 | 2;
   /** Stable package id. */
   readonly id: string;
   /** Display title. */
@@ -96,6 +126,13 @@ export type FirmwareManifestDocument = {
    * labels / ids / filenames.
    */
   readonly packageKind?: FirmwareManifestPackageKind;
+  /**
+   * Filesystem layouts this package can provision (Manifest V2).
+   *
+   * When `"both"`, Reinstall asks the user; when a single FS is listed it
+   * is selected automatically.
+   */
+  readonly filesystemSupport?: FirmwareFilesystemSupport;
   /** Flash image layout (at least one entry after validation). */
   readonly images: readonly FirmwareManifestImageRef[];
 };
@@ -223,6 +260,9 @@ export function toCatalogManifest(
     ...(document.packageKind !== undefined
       ? { packageKind: document.packageKind }
       : {}),
+    ...(document.filesystemSupport !== undefined
+      ? { filesystemSupport: document.filesystemSupport }
+      : {}),
   };
 }
 
@@ -251,6 +291,7 @@ export function createLocalFirmwareManifestDocument(options: {
     sourceKind: "local",
     chipFamilies: options.chipFamilies ?? [],
     packageKind: options.packageKind ?? "application-only",
+    filesystemSupport: "none",
     images: [
       {
         id: options.imageId,
