@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { DeviceError } from "@/core/device";
 import { DeviceDiscoveryPanel } from "@/features/devices/device-discovery-panel";
 import { toDeviceSnapshot } from "@/features/devices/to-device-snapshot";
+import { DeviceDashboard } from "@/features/profiles/device-dashboard";
+import { useMatchedDeviceProfile } from "@/features/profiles/use-matched-device-profile";
 import { useChipIdentification } from "@/features/identification/use-chip-identification";
 import {
   isWebSerialSupported,
@@ -43,6 +45,7 @@ export function DevicesFeature(): JSX.Element {
   const clearError = useDeviceStore((s) => s.clearError);
   const { isIdentifying, identifyError, runIdentification } =
     useChipIdentification();
+  const matchedProfile = useMatchedDeviceProfile();
 
   useEffect(() => {
     const supported = isWebSerialSupported();
@@ -166,8 +169,8 @@ export function DevicesFeature(): JSX.Element {
   return (
     <div>
       <PageHeader
-        title="Connect Device"
-        description="Discover and connect ESP8266 or ESP32 boards from the browser using Web Serial."
+        title="Device"
+        description="Connect a board, then use the Device Dashboard powered by Device Profiles."
         actions={
           activeDevice ? (
             <div className="flex flex-wrap gap-2">
@@ -216,6 +219,7 @@ export function DevicesFeature(): JSX.Element {
         isIdentifying={isIdentifying}
         identifyError={identifyError}
         activeDevice={activeDevice}
+        showConnectedCard={matchedProfile === null}
         errorKind={errorKind}
         errorMessage={errorMessage}
         onIdentify={
@@ -229,6 +233,25 @@ export function DevicesFeature(): JSX.Element {
           void handleConnect();
         }}
       />
+
+      {matchedProfile ? (
+        <div className="mt-4 space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={isIdentifying || isConnecting || isDisconnecting}
+              onClick={() => {
+                void runIdentification(matchedProfile.context.deviceId);
+              }}
+            >
+              {isIdentifying ? "Identifying…" : "Identify"}
+            </Button>
+          </div>
+          <DeviceDashboard matched={matchedProfile} />
+        </div>
+      ) : null}
     </div>
   );
 }

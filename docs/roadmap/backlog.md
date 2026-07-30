@@ -22,17 +22,17 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 | 9g       | Pre-flash Inspect  | ✅     | Confirm before overwrite; blank skips confirm       |
 | 9h       | Flash Pipeline     | ✅     | Complete vs app-only; blank+app-only stop; bootable |
 | 9i       | Provisioning Modes | ✅     | Update / Reinstall / Factory erase + Manifest V2    |
-| 13b      | FS Upload/Download | ✅     | Transfer files via FilesystemService + adapter        |
-| 13c      | FS Manage          | ✅     | SPIFFS delete/rename/mkdir/stats/DnD; LittleFS read |
+| 9j       | Device Profiles    | ✅     | Registry + Generic ESP dashboard + placeholders     |
 | 10       | Firmware Plugins   | ⬜     | Installer contribution points + first plugins       |
 | 11       | Firmware Library   | ✅     | Catalog browser + one-click install                 |
 | 12       | Serial Monitor     | ✅     | Minimal UTF-8 console over `CommunicationSession`   |
 | 13       | Filesystem         | ✅     | SPIFFS / LittleFS browse + upload/download          |
 | 13a      | Public Beta Harden | ✅     | Reliability, UX consistency, smoke tests            |
 | 13b      | FS Upload/Download | ✅     | Transfer files via FilesystemService + adapter        |
+| 13c      | FS Manage          | ✅     | SPIFFS delete/rename/mkdir/stats/DnD; LittleFS read |
 | 14       | OTA                | ⬜     | Network update flows                                |
 | 15       | IDE                | ⬜     | Monaco-based editing shell                          |
-| 16       | Release v1.0       | 🟡     | Tag v0.9.0-beta.1 after device op lock              |
+| 16       | Release v1.0       | 🟡     | Version bumped to v1.0.0-beta; tag when ready        |
 | 16a      | Continuous Deploy  | ✅     | CI + FTP deploy of dist/ to shared hosting          |
 | 16b      | Device Diagnostics | ✅     | Support report export for bug reports               |
 | 16c      | Device Op Lock     | ✅     | Shared ownership across Flash/Identify/FS/Serial    |
