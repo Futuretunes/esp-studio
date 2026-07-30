@@ -15,7 +15,8 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 | 9        | Flash Service      | ✅     | Orchestration (`FlashService`) over esptool adapter |
 | 9a       | Flash UI           | ✅     | Local `.bin` flash page + live progress             |
 | 9b       | Firmware Catalog   | ✅     | Multi-provider catalog; LocalFirmwareProvider only  |
-| 9c       | Firmware Manifest  | 🟡     | Canonical JSON schema + parser/validator            |
+| 9c       | Firmware Manifest  | ✅     | Canonical JSON schema + parser/validator            |
+| 9d       | GitHub Firmware    | ✅     | First remote FirmwareProvider (Releases + Flash UI) |
 | 10       | Firmware Plugins   | ⬜     | Installer contribution points + first plugins       |
 | 11       | Firmware Library   | ⬜     | Catalog browser + one-click install                 |
 | 12       | Serial Monitor     | ✅     | Minimal UTF-8 console over `CommunicationSession`   |
@@ -84,10 +85,16 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 - Multi-provider `FirmwareCatalog`; MVP ships `LocalFirmwareProvider` only.
 - Flash UI consumes catalog entries.
 
-### Firmware Manifest 🟡
+### Firmware Manifest ✅
 
 - Canonical `schemaVersion: 1` JSON document, parser, and typed validator.
-- Contract between providers and FlashService (no GitHub/downloads yet).
+- Contract between providers and FlashService.
+
+### GitHub Firmware Provider ✅
+
+- `GitHubFirmwareProvider` loads latest release into `FirmwareCatalog`.
+- Manifest discovery + `.bin` fallback; lazy download on `resolve()`.
+- Flash UI: Local File vs GitHub Repository (persisted slug).
 
 ### Firmware Plugins ⬜
 

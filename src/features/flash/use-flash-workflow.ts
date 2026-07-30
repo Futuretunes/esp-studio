@@ -20,6 +20,13 @@ import {
   LOCAL_FIRMWARE_PROVIDER_ID,
   LocalFirmwareProvider,
 } from "@/features/firmware/LocalFirmwareProvider";
+import {
+  GITHUB_FIRMWARE_PROVIDER_ID,
+  GitHubFirmwareProvider,
+  isGitHubFirmwareProviderError,
+  readPersistedGitHubRepository,
+  type GitHubReleaseSummary,
+} from "@/features/firmware/providers/github";
 import { isWebSerialSupported } from "@/providers/web-serial";
 import { useDeviceStore } from "@/store";
 
@@ -54,6 +61,11 @@ export function parseCatalogSelectionKey(
   };
 }
 
+/**
+ * Firmware source mode on the Flash page.
+ */
+export type FlashFirmwareSource = "local" | "github";
+
 export type FlashUiErrorKind =
   | "unsupported"
   | "no-device"
@@ -61,6 +73,7 @@ export type FlashUiErrorKind =
   | "invalid-file"
   | "busy"
   | "failed"
+  | "provider"
   | null;
 
 /**
@@ -76,11 +89,22 @@ export function useFlashWorkflow() {
 
   const service = useMemo(() => new FlashService(manager), [manager]);
   const localProvider = useMemo(() => new LocalFirmwareProvider(), []);
+  const githubProvider = useMemo(() => new GitHubFirmwareProvider(), []);
   const catalog = useMemo(
-    () => new FirmwareCatalog([localProvider]),
-    [localProvider],
+    () => new FirmwareCatalog([localProvider, githubProvider]),
+    [githubProvider, localProvider],
   );
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const [firmwareSource, setFirmwareSource] =
+    useState<FlashFirmwareSource>("local");
+  const [repositorySlug, setRepositorySlug] = useState(
+    () => readPersistedGitHubRepository() ?? "",
+  );
+  const [releaseSummary, setReleaseSummary] =
+    useState<GitHubReleaseSummary | null>(null);
+  const [isLoadingGithub, setIsLoadingGithub] = useState(false);
+  const [isResolving, setIsResolving] = useState(false);
 
   const [entries, setEntries] = useState<readonly FirmwareCatalogEntry[]>([]);
   const [selectionKey, setSelectionKey] = useState("");
@@ -101,6 +125,17 @@ export function useFlashWorkflow() {
   useEffect(() => {
     void refreshCatalog();
   }, [refreshCatalog]);
+
+  const visibleEntries = useMemo(() => {
+    if (firmwareSource === "local") {
+      return entries.filter(
+        (entry) => entry.manifest.providerId === LOCAL_FIRMWARE_PROVIDER_ID,
+      );
+    }
+    return entries.filter(
+      (entry) => entry.manifest.providerId === GITHUB_FIRMWARE_PROVIDER_ID,
+    );
+  }, [entries, firmwareSource]);
 
   const clearFeedback = useCallback(() => {
     setErrorKind(null);
@@ -123,14 +158,68 @@ export function useFlashWorkflow() {
   }, [setWebSerialSupported]);
 
   const clearFirmware = useCallback(() => {
-    localProvider.clear();
+    if (firmwareSource === "local") {
+      localProvider.clear();
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
     setResolved(null);
     setSelectionKey("");
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
     void refreshCatalog();
-  }, [localProvider, refreshCatalog]);
+  }, [firmwareSource, localProvider, refreshCatalog]);
+
+  const changeFirmwareSource = useCallback(
+    (source: FlashFirmwareSource) => {
+      clearFeedback();
+      setFirmwareSource(source);
+      setResolved(null);
+      setSelectionKey("");
+      if (source === "local") {
+        // Keep GitHub cache so switching back remains fast; clear local resolution only.
+        const current = localProvider.getCurrent();
+        if (current) {
+          setSelectionKey(
+            catalogSelectionKey(
+              current.manifest.providerId,
+              current.manifest.id,
+            ),
+          );
+          setResolved(current);
+        }
+      } else {
+        setReleaseSummary(githubProvider.getReleaseSummary());
+      }
+    },
+    [clearFeedback, githubProvider, localProvider],
+  );
+
+  const loadGitHubRepository = useCallback(async () => {
+    clearFeedback();
+    setIsLoadingGithub(true);
+    setResolved(null);
+    setSelectionKey("");
+
+    try {
+      const summary = await githubProvider.configureRepository(repositorySlug);
+      setReleaseSummary(summary);
+      await refreshCatalog();
+    } catch (error) {
+      githubProvider.clear();
+      setReleaseSummary(null);
+      await refreshCatalog();
+      setErrorKind("provider");
+      setErrorMessage(
+        isGitHubFirmwareProviderError(error)
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Could not load firmware from GitHub.",
+      );
+    } finally {
+      setIsLoadingGithub(false);
+    }
+  }, [clearFeedback, githubProvider, refreshCatalog, repositorySlug]);
 
   const selectCatalogEntry = useCallback(
     (key: string) => {
@@ -167,6 +256,7 @@ export function useFlashWorkflow() {
         return;
       }
 
+      setIsResolving(true);
       void catalog
         .resolve(parsed.providerId, parsed.manifestId)
         .then((packageResolved) => {
@@ -175,12 +265,17 @@ export function useFlashWorkflow() {
         })
         .catch((error: unknown) => {
           setResolved(null);
-          setErrorKind("failed");
+          setErrorKind(
+            isGitHubFirmwareProviderError(error) ? "provider" : "failed",
+          );
           setErrorMessage(
             error instanceof Error
               ? error.message
               : "Could not resolve the selected firmware.",
           );
+        })
+        .finally(() => {
+          setIsResolving(false);
         });
     },
     [catalog, clearFeedback, entries],
@@ -262,7 +357,9 @@ export function useFlashWorkflow() {
     if (!resolved || resolved.images.length === 0) {
       setErrorKind("no-file");
       setErrorMessage(
-        "Select firmware from the catalog (Local file…) before flashing.",
+        firmwareSource === "github"
+          ? "Select a GitHub firmware option and wait for download before flashing."
+          : "Select firmware from the catalog (Local file…) before flashing.",
       );
       return;
     }
@@ -345,6 +442,7 @@ export function useFlashWorkflow() {
     activeDevice,
     clearFeedback,
     ensureSupport,
+    firmwareSource,
     resolved,
     service,
   ]);
@@ -354,7 +452,12 @@ export function useFlashWorkflow() {
   return {
     activeDevice,
     webSerialSupported,
-    catalogEntries: entries,
+    firmwareSource,
+    repositorySlug,
+    releaseSummary,
+    isLoadingGithub,
+    isResolving,
+    catalogEntries: visibleEntries,
     selectionKey,
     resolved,
     primaryImage,
@@ -366,6 +469,9 @@ export function useFlashWorkflow() {
     fileInputRef,
     flashAddress: primaryImage?.address ?? DEFAULT_APP_FLASH_ADDRESS,
     ensureSupport,
+    setFirmwareSource: changeFirmwareSource,
+    setRepositorySlug,
+    loadGitHubRepository,
     selectCatalogEntry,
     selectFirmwareFile,
     clearFirmware,
