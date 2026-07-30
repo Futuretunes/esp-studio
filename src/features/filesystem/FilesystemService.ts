@@ -9,9 +9,13 @@ import { EspToolAdapter } from "@/adapters/esptool";
 import { EspFilesystemAdapter } from "@/adapters/filesystem";
 import {
   CommunicationOwnershipError,
-  CommunicationSession,
+  type CommunicationLock,
 } from "@/core/communication";
-import type { DeviceManager } from "@/core/device";
+import {
+  formatDeviceBusyMessage,
+  type DeviceManager,
+  type DeviceOperationLock,
+} from "@/core/device";
 import { FILESYSTEM_BROWSER_OWNER_ID } from "@/features/filesystem/constants";
 import type {
   FilesystemEntry,
@@ -137,20 +141,20 @@ export class FilesystemService {
       port: NonNullable<ReturnType<WebSerialProvider["getNativePort"]>>,
     ) => Promise<T>,
   ): Promise<T> {
-    let lock: ReturnType<CommunicationSession["acquire"]> | undefined;
-    let session: CommunicationSession | undefined;
+    let lock: CommunicationLock | undefined;
+    let operationLock: DeviceOperationLock | undefined;
 
     try {
       const target = this.#resolveTarget(deviceId);
-      session = target.session;
+      operationLock = target.operationLock;
 
       try {
-        lock = session.acquire(FILESYSTEM_BROWSER_OWNER_ID);
+        lock = operationLock.claim(FILESYSTEM_BROWSER_OWNER_ID);
       } catch (error) {
         if (error instanceof CommunicationOwnershipError) {
           throw new FilesystemError(
             "busy",
-            `Cannot use the filesystem while another tool owns the connection (${session.ownerId ?? "unknown"}). Stop the Serial Monitor and retry.`,
+            formatDeviceBusyMessage(operationLock.ownerId, "filesystem"),
             { cause: error },
           );
         }
@@ -161,9 +165,9 @@ export class FilesystemService {
     } catch (error) {
       throw this.#normalizeError(error);
     } finally {
-      if (session !== undefined && lock !== undefined) {
+      if (operationLock !== undefined && lock !== undefined) {
         try {
-          session.release(lock);
+          operationLock.release(lock);
         } catch {
           /* Ignore double-release. */
         }
@@ -175,7 +179,7 @@ export class FilesystemService {
     readonly port: NonNullable<
       ReturnType<WebSerialProvider["getNativePort"]>
     >;
-    readonly session: CommunicationSession;
+    readonly operationLock: DeviceOperationLock;
   } {
     const device = this.#manager.getDevice(deviceId);
     const io = device?.connection.io;
@@ -189,7 +193,10 @@ export class FilesystemService {
     if (io.state !== "closed") {
       throw new FilesystemError(
         "busy",
-        "Cannot use the filesystem while another tool owns the connection. Stop the Serial Monitor and retry.",
+        formatDeviceBusyMessage(
+          this.#manager.getOperationOwner(deviceId) ?? "serial-monitor",
+          "filesystem",
+        ),
       );
     }
 
@@ -211,7 +218,7 @@ export class FilesystemService {
 
     return {
       port: nativePort,
-      session: new CommunicationSession(io),
+      operationLock: this.#manager.getOperationLock(deviceId),
     };
   }
 

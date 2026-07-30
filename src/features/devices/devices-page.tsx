@@ -1,6 +1,7 @@
 import { useEffect, useCallback, type JSX } from "react";
 
 import { useDeviceManager } from "@/app/device-context";
+import { DeviceBusyBanner } from "@/components/device-busy-banner";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { DeviceError } from "@/core/device";
@@ -154,6 +155,10 @@ export function DevicesFeature(): JSX.Element {
           )
         }
       />
+
+      <div className="mb-4">
+        <DeviceBusyBanner attempting="identify" />
+      </div>
 
       <DeviceDiscoveryPanel
         webSerialSupported={webSerialSupported}

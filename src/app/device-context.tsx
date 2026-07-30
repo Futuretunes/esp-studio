@@ -1,12 +1,14 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   type JSX,
   type ReactNode,
 } from "react";
 
 import type { DeviceManager } from "@/core/device";
+import { useDeviceStore } from "@/store";
 
 import { createDeviceRuntime } from "./device-runtime";
 
@@ -29,6 +31,25 @@ export function DeviceManagerProvider({
     () => managerOverride ?? createDeviceRuntime(),
     [managerOverride],
   );
+  const setOperationOwner = useDeviceStore((state) => state.setOperationOwner);
+  const activeDeviceId = useDeviceStore((state) => state.activeDevice?.id);
+
+  useEffect(() => {
+    return manager.subscribeOperationOwner((deviceId, ownerId) => {
+      const activeId = useDeviceStore.getState().activeDevice?.id;
+      if (activeId === undefined || activeId === deviceId) {
+        setOperationOwner(ownerId);
+      }
+    });
+  }, [manager, setOperationOwner]);
+
+  useEffect(() => {
+    if (!activeDeviceId) {
+      setOperationOwner(null);
+      return;
+    }
+    setOperationOwner(manager.getOperationOwner(activeDeviceId));
+  }, [activeDeviceId, manager, setOperationOwner]);
 
   return (
     <DeviceManagerContext.Provider value={manager}>

@@ -3,11 +3,12 @@
  */
 
 import { EspToolChipIdentifier } from "@/adapters/esptool";
+import { CommunicationOwnershipError } from "@/core/communication";
 import {
-  CommunicationOwnershipError,
-  CommunicationSession,
-} from "@/core/communication";
-import type { ChipFamily, DeviceManager } from "@/core/device";
+  formatDeviceBusyMessage,
+  type ChipFamily,
+  type DeviceManager,
+} from "@/core/device";
 import { CHIP_IDENTIFICATION_OWNER_ID } from "@/features/identification/constants";
 import {
   WebSerialProvider,
@@ -25,7 +26,7 @@ export type IdentifyDeviceResult = {
 /**
  * Identifies the chip on a connected device and updates Device metadata.
  *
- * Acquires CommunicationSession ownership (`chip-identification`), runs the
+ * Claims the shared device operation lock (`chip-identification`), runs the
  * esptool adapter against the native Web Serial port, releases ownership, then
  * patches {@link DeviceManager} info.
  *
@@ -47,7 +48,10 @@ export async function identifyDevice(
 
   if (io.state !== "closed") {
     throw new Error(
-      "Cannot identify chip while another tool owns the connection. Stop the Serial Monitor and retry.",
+      formatDeviceBusyMessage(
+        manager.getOperationOwner(deviceId) ?? "serial-monitor",
+        "identify",
+      ),
     );
   }
 
@@ -65,15 +69,15 @@ export async function identifyDevice(
     );
   }
 
-  const session = new CommunicationSession(io);
+  const operationLock = manager.getOperationLock(deviceId);
   let lock;
 
   try {
-    lock = session.acquire(CHIP_IDENTIFICATION_OWNER_ID);
+    lock = operationLock.claim(CHIP_IDENTIFICATION_OWNER_ID);
   } catch (error) {
     if (error instanceof CommunicationOwnershipError) {
       throw new Error(
-        `Cannot identify chip while another tool owns the connection (${session.ownerId ?? "unknown"}). Stop the Serial Monitor and retry.`,
+        formatDeviceBusyMessage(operationLock.ownerId, "identify"),
         { cause: error },
       );
     }
@@ -102,7 +106,7 @@ export async function identifyDevice(
     };
   } finally {
     try {
-      session.release(lock);
+      operationLock.release(lock);
     } catch {
       /* Ownership may already be cleared. */
     }

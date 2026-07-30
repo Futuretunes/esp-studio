@@ -110,6 +110,13 @@ export function useFlashWorkflow() {
   const [builtInEntries, setBuiltInEntries] = useState<
     readonly BuiltInCatalogEntry[]
   >([]);
+  const [builtInCatalogStatus, setBuiltInCatalogStatus] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
+  const [builtInCatalogError, setBuiltInCatalogError] = useState<string | null>(
+    null,
+  );
+  const [builtInCatalogRetryKey, setBuiltInCatalogRetryKey] = useState(0);
   const [selectedBuiltInId, setSelectedBuiltInId] = useState<string | null>(
     null,
   );
@@ -133,17 +140,60 @@ export function useFlashWorkflow() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const refreshCatalog = useCallback(async () => {
-    const next = await catalog.listAll();
-    setEntries(next);
-    return next;
+    try {
+      const next = await catalog.listAll();
+      setEntries(next);
+      return next;
+    } catch (error) {
+      setErrorKind("provider");
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Failed to load firmware catalog entries.",
+      );
+      throw error;
+    }
   }, [catalog]);
 
   useEffect(() => {
-    void refreshCatalog();
+    void refreshCatalog().catch(() => {
+      /* Error state set in refreshCatalog. */
+    });
   }, [refreshCatalog]);
 
   useEffect(() => {
-    void loadBuiltInCatalog().then(setBuiltInEntries);
+    let cancelled = false;
+    setBuiltInCatalogStatus("loading");
+    setBuiltInCatalogError(null);
+
+    void loadBuiltInCatalog()
+      .then((entries) => {
+        if (cancelled) {
+          return;
+        }
+        setBuiltInEntries(entries);
+        setBuiltInCatalogStatus("ready");
+      })
+      .catch((error: unknown) => {
+        if (cancelled) {
+          return;
+        }
+        setBuiltInEntries([]);
+        setBuiltInCatalogStatus("error");
+        setBuiltInCatalogError(
+          error instanceof Error
+            ? error.message
+            : "Failed to load the built-in firmware catalog.",
+        );
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [builtInCatalogRetryKey]);
+
+  const retryBuiltInCatalog = useCallback(() => {
+    setBuiltInCatalogRetryKey((value) => value + 1);
   }, []);
 
   const selectedBuiltIn =
@@ -590,6 +640,8 @@ export function useFlashWorkflow() {
     webSerialSupported,
     firmwareSource,
     builtInEntries,
+    builtInCatalogStatus,
+    builtInCatalogError,
     selectedBuiltInId,
     selectedBuiltIn,
     repositorySlug,
@@ -612,6 +664,7 @@ export function useFlashWorkflow() {
     flashAddress: primaryImage?.address ?? DEFAULT_APP_FLASH_ADDRESS,
     ensureSupport,
     setFirmwareSource: changeFirmwareSource,
+    retryBuiltInCatalog,
     setRepositorySlug,
     loadGitHubRepository,
     selectBuiltInEntry,

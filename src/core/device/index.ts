@@ -27,5 +27,13 @@ export {
   ProviderUnavailableError,
   UnknownDeviceError,
   UnknownProviderError,
+  type DeviceOperationOwnerListener,
 } from "./DeviceManager";
+export { DeviceOperationLock } from "./DeviceOperationLock";
+export {
+  DEVICE_OPERATION_OWNER_LABELS,
+  formatDeviceBusyMessage,
+  formatDeviceOperationOwnerLabel,
+  type DeviceOperationOwnerId,
+} from "./device-operation-messages";
 export type { DeviceConnectOptions, DeviceProvider } from "./DeviceProvider";

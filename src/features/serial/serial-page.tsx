@@ -1,5 +1,6 @@
 import type { JSX } from "react";
 
+import { DeviceBusyBanner } from "@/components/device-busy-banner";
 import { PageHeader } from "@/components/page-header";
 import { SerialMonitorPanel } from "@/features/serial/serial-monitor-panel";
 
@@ -13,6 +14,9 @@ export function SerialFeature(): JSX.Element {
         title="Serial Monitor"
         description="Live serial output and send text to the connected board."
       />
+      <div className="mb-4">
+        <DeviceBusyBanner attempting="serial" />
+      </div>
       <SerialMonitorPanel />
     </div>
   );

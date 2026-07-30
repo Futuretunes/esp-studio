@@ -12,6 +12,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { formatDeviceOperationOwnerLabel } from "@/core/device";
 import { cn } from "@/lib/utils";
 import { useDeviceStore, useUiStore } from "@/store";
 
@@ -142,6 +143,7 @@ export function AppHeader(): JSX.Element {
     (state) => state.setMobileSidebarOpen,
   );
   const activeDevice = useDeviceStore((state) => state.activeDevice);
+  const operationOwner = useDeviceStore((state) => state.operationOwner);
 
   return (
     <header className="border-border bg-background/80 supports-backdrop-filter:bg-background/60 flex h-14 shrink-0 items-center gap-3 border-b px-4 backdrop-blur">
@@ -187,7 +189,7 @@ export function AppHeader(): JSX.Element {
           className={cn(
             "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs",
             activeDevice?.status === "connected"
-              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+              ? "border-emerald-600/30 bg-emerald-500/10 text-emerald-800 dark:border-emerald-500/30 dark:text-emerald-300"
               : "border-border bg-muted/40 text-muted-foreground",
           )}
         >
@@ -195,11 +197,15 @@ export function AppHeader(): JSX.Element {
             className={cn(
               "size-1.5 rounded-full",
               activeDevice?.status === "connected"
-                ? "bg-emerald-400"
+                ? "bg-emerald-600 dark:bg-emerald-400"
                 : "bg-muted-foreground/50",
             )}
           />
-          {activeDevice?.status === "connected" ? "Connected" : "Disconnected"}
+          {activeDevice?.status === "connected"
+            ? operationOwner
+              ? `Busy · ${formatDeviceOperationOwnerLabel(operationOwner)}`
+              : "Connected"
+            : "Disconnected"}
         </span>
       </div>
     </header>

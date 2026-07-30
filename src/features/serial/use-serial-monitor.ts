@@ -8,10 +8,11 @@ import {
 
 import { useDeviceManager } from "@/app/device-context";
 import {
-  CommunicationSession,
+  CommunicationOwnershipError,
   type CommunicationLock,
+  type CommunicationSession,
 } from "@/core/communication";
-import { DeviceError } from "@/core/device";
+import { DeviceError, formatDeviceBusyMessage } from "@/core/device";
 import { toDeviceSnapshot } from "@/features/devices/to-device-snapshot";
 import { SERIAL_MONITOR_OWNER_ID } from "@/features/serial/constants";
 import {
@@ -97,17 +98,41 @@ export function useSerialMonitor() {
       const generation = monitorGenerationRef.current + 1;
       monitorGenerationRef.current = generation;
 
-      const session = new CommunicationSession(io);
+      let operationLock;
+      try {
+        operationLock = manager.getOperationLock(deviceId);
+      } catch (error) {
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "Cannot start the Serial Monitor on this device.",
+        );
+        return;
+      }
+
+      const session = operationLock.session;
       sessionRef.current = session;
 
       try {
+        let lock: CommunicationLock;
+        try {
+          lock = operationLock.claim(SERIAL_MONITOR_OWNER_ID);
+        } catch (error) {
+          if (error instanceof CommunicationOwnershipError) {
+            setErrorMessage(
+              formatDeviceBusyMessage(operationLock.ownerId, "serial"),
+            );
+            return;
+          }
+          throw error;
+        }
+        lockRef.current = lock;
+
         await session.open();
         if (monitorGenerationRef.current !== generation) {
           return;
         }
 
-        const lock = session.acquire(SERIAL_MONITOR_OWNER_ID);
-        lockRef.current = lock;
         setIsMonitoring(true);
 
         while (monitorGenerationRef.current === generation) {
