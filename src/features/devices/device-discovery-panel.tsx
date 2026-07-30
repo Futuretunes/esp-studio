@@ -20,9 +20,16 @@ type DeviceDiscoveryPanelProps = {
   isIdentifying?: boolean;
   identifyError?: string | null;
   activeDevice: DeviceSnapshot | null;
-  errorKind: "unsupported" | "cancelled" | "failed" | "disconnect" | null;
+  errorKind:
+    | "unsupported"
+    | "cancelled"
+    | "failed"
+    | "disconnect"
+    | "lost"
+    | null;
   errorMessage: string | null;
   onIdentify?: (() => void) | undefined;
+  onRetryConnect?: (() => void) | undefined;
 };
 
 function capabilityEntries(
@@ -49,6 +56,7 @@ export function DeviceDiscoveryPanel({
   errorKind,
   errorMessage,
   onIdentify,
+  onRetryConnect,
 }: DeviceDiscoveryPanelProps): JSX.Element {
   return (
     <div className="space-y-4">
@@ -66,9 +74,22 @@ export function DeviceDiscoveryPanel({
       {errorKind === "cancelled" ? (
         <Alert variant="info">
           <AlertTitle>No device selected</AlertTitle>
-          <AlertDescription>
-            {errorMessage ??
-              "The serial port chooser was closed without selecting a device."}
+          <AlertDescription className="space-y-3">
+            <p>
+              {errorMessage ??
+                "The serial port chooser was closed without selecting a device."}
+            </p>
+            {onRetryConnect ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={isConnecting}
+                onClick={onRetryConnect}
+              >
+                Try again
+              </Button>
+            ) : null}
           </AlertDescription>
         </Alert>
       ) : null}
@@ -76,9 +97,45 @@ export function DeviceDiscoveryPanel({
       {errorKind === "failed" ? (
         <Alert variant="destructive">
           <AlertTitle>Connection failed</AlertTitle>
-          <AlertDescription>
-            {errorMessage ??
-              "ESP Studio could not open the selected serial port."}
+          <AlertDescription className="space-y-3">
+            <p>
+              {errorMessage ??
+                "ESP Studio could not open the selected serial port."}
+            </p>
+            {onRetryConnect ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={isConnecting}
+                onClick={onRetryConnect}
+              >
+                Retry
+              </Button>
+            ) : null}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {errorKind === "lost" ? (
+        <Alert variant="warning">
+          <AlertTitle>Device disconnected</AlertTitle>
+          <AlertDescription className="space-y-3">
+            <p>
+              {errorMessage ??
+                "The serial device was disconnected unexpectedly. Reconnect to continue."}
+            </p>
+            {onRetryConnect ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={isConnecting}
+                onClick={onRetryConnect}
+              >
+                Reconnect
+              </Button>
+            ) : null}
           </AlertDescription>
         </Alert>
       ) : null}
@@ -95,7 +152,20 @@ export function DeviceDiscoveryPanel({
       {identifyError ? (
         <Alert variant="destructive">
           <AlertTitle>Identification failed</AlertTitle>
-          <AlertDescription>{identifyError}</AlertDescription>
+          <AlertDescription className="space-y-3">
+            <p>{identifyError}</p>
+            {onIdentify ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={isIdentifying || isConnecting || !activeDevice}
+                onClick={onIdentify}
+              >
+                Retry identify
+              </Button>
+            ) : null}
+          </AlertDescription>
         </Alert>
       ) : null}
 
@@ -216,8 +286,8 @@ export function DeviceDiscoveryPanel({
             <CardTitle>No device connected</CardTitle>
             <CardDescription>
               Click <span className="font-medium">Connect Device</span> to open
-              the browser serial port chooser. Flashing is not part of this
-              step.
+              the browser serial port chooser. After connecting, use Flash,
+              Serial, or Filesystem from the sidebar.
             </CardDescription>
           </CardHeader>
         </Card>

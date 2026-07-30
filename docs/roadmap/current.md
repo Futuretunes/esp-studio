@@ -1,29 +1,25 @@
 # Current Focus
 
-**Active milestone:** Filesystem Browser (MVP)
+**Active milestone:** Public Beta Hardening
 
 ## Why this next
 
-One-click Install completed the flash UX. Next is on-device storage visibility: list directories/files via a dedicated filesystem service + adapter, establishing the model for upload/download later.
+Feature surface is complete enough for beta. Remaining work is reliability (disconnects, recovery), consistent UX, copy hygiene, and smoke tests—not new product pillars.
 
 ## In scope
 
-1. `docs/features/filesystem-browser.md`
-2. `FilesystemService` + abstract entries + typed errors
-3. `EspFilesystemAdapter` (flash read + SPIFFS/LittleFS parse)
-4. Filesystem page: browse, expand/collapse, refresh
+1. `docs/features/public-beta-hardening.md` + hardware matrix
+2. Unexpected disconnect / permission-loss handling
+3. Consistent alerts, retries, empty/loading states
+4. Stale copy cleanup
+5. Practical `pnpm test` smoke suite
 
 ## Out of scope
 
-Upload, download, delete, rename, create folder, OTA, editor integration
-
-## Next up
-
-Editable filesystem (upload/download) or public beta polish.
+New features (OTA, plugins, editable FS mutations, auto-reconnect policies)
 
 ## Related documents
 
-- [Filesystem Browser](../features/filesystem-browser.md)
-- [Communication Session](../features/communication-session.md)
-- [Flash Service](../features/flash-service.md)
+- [Public Beta Hardening](../features/public-beta-hardening.md)
+- [Hardware compatibility](../hardware-compatibility.md)
 - [Backlog](./backlog.md)
