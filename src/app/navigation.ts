@@ -16,18 +16,18 @@ export const NAV_ITEMS: readonly NavItem[] = [
     description: "Connect and manage ESP8266 / ESP32 boards",
   },
   {
-    id: "flash",
-    label: "Flash",
-    title: "Flash Firmware",
-    path: "/flash",
-    description: "Flash firmware images to connected devices",
-  },
-  {
     id: "firmware",
     label: "Firmware",
     title: "Firmware Library",
     path: "/firmware",
-    description: "Browse and manage your firmware library",
+    description: "Browse popular firmware and start one-click install",
+  },
+  {
+    id: "flash",
+    label: "Flash",
+    title: "Install Firmware",
+    path: "/flash",
+    description: "One-click install and local firmware flashing",
   },
   {
     id: "serial",

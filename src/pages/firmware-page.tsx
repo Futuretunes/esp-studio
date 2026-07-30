@@ -1,7 +1,10 @@
 import type { JSX } from "react";
 
-import { FirmwareFeature } from "@/features/firmware/firmware-page";
+import { FirmwareLibraryPage } from "@/features/library";
 
+/**
+ * Route entry for the Firmware Library browse experience.
+ */
 export function FirmwarePage(): JSX.Element {
-  return <FirmwareFeature />;
+  return <FirmwareLibraryPage />;
 }
