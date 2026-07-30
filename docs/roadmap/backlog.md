@@ -8,7 +8,7 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 | 2        | Core             | 🟡     | `src/core/*` domain packages; Device Layer landed  |
 | 3        | Device Layer     | ✅     | Transport-agnostic device contracts + manager      |
 | 4        | Web Serial       | ✅     | First real `DeviceProvider` implementation         |
-| 5        | Device Discovery | ⬜     | UX + APIs to list/request devices across providers |
+| 5        | Device Discovery | ✅     | UX + APIs to list/request devices across providers |
 | 6        | Flash Engine     | ⬜     | Flash orchestration + esptool-js adapter           |
 | 7        | Firmware Plugins | ⬜     | Installer contribution points + first plugins      |
 | 8        | Firmware Library | ⬜     | Catalog, versions, local/remote artifacts          |
@@ -41,10 +41,11 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 - Browser permission flows isolated in `src/providers/web-serial`.
 - Minimal connect/disconnect only (no streaming/flashing yet).
 
-### Device Discovery ⬜
+### Device Discovery ✅
 
-- Unified discovery UX across registered providers.
-- Persist recent devices where the transport allows.
+- Unified connect UX for Web Serial on the Devices page.
+- `DeviceManager` exposed via React context; Zustand holds UI snapshots.
+- Persist recent devices where the transport allows (future).
 
 ### Flash Engine ⬜
 
