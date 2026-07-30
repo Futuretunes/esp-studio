@@ -11,6 +11,7 @@ const DASHBOARD_CARD_IDS = [
   "serial",
   "filesystem",
   "ota",
+  "diagnostics",
   "settings",
 ] as const;
 

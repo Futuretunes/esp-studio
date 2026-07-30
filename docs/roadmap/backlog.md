@@ -28,7 +28,8 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 | 14       | OTA                | ⬜     | Network update flows                                |
 | 15       | IDE                | ⬜     | Monaco-based editing shell                          |
 | 16       | Release v1.0       | ⬜     | Documented APIs, tests, at least one transport      |
-| 16a      | Continuous Deploy  | 🟡     | CI + FTP deploy of dist/ to shared hosting          |
+| 16a      | Continuous Deploy  | ✅     | CI + FTP deploy of dist/ to shared hosting          |
+| 16b      | Device Diagnostics | ✅     | Support report export for bug reports               |
 
 ## Detail by milestone
 
@@ -153,11 +154,16 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 
 - Monaco integration, project files, optional language tools.
 
-### Continuous Deploy 🟡
+### Continuous Deploy ✅
 
 - GitHub Actions CI (lint/typecheck/test/build) and FTP deploy of `dist/`.
 - `build.json` + Settings About display.
 - Secrets: FTP_HOST / FTP_PORT / FTP_USER / FTP_PASSWORD / FTP_REMOTE_PATH.
+
+### Device Diagnostics ✅
+
+- Diagnostics page aggregating device/browser/build facts.
+- Export `diagnostics.json` for support (no serial logs / FS contents).
 
 ### Release v1.0 ⬜
 
