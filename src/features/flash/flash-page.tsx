@@ -32,6 +32,8 @@ export function FlashFeature(): JSX.Element {
     isFlashing,
     progress,
     result,
+    inspectionNotice,
+    pendingOverwrite,
     errorKind,
     errorMessage,
     githubReleasesHref,
@@ -49,6 +51,8 @@ export function FlashFeature(): JSX.Element {
     selectFirmwareFile,
     clearFirmware,
     startFlash,
+    confirmOverwrite,
+    cancelOverwrite,
     builtInCatalogStatus,
     builtInCatalogError,
     retryBuiltInCatalog,
@@ -107,6 +111,8 @@ export function FlashFeature(): JSX.Element {
         isFlashing={isFlashing}
         progress={progress}
         result={result}
+        inspectionNotice={inspectionNotice}
+        pendingOverwrite={pendingOverwrite}
         errorKind={errorKind}
         errorMessage={errorMessage}
         githubReleasesHref={githubReleasesHref}
@@ -130,6 +136,10 @@ export function FlashFeature(): JSX.Element {
         onInstall={() => {
           void startFlash();
         }}
+        onConfirmOverwrite={() => {
+          void confirmOverwrite();
+        }}
+        onCancelOverwrite={cancelOverwrite}
       />
     </div>
   );

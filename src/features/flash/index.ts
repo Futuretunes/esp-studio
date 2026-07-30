@@ -30,6 +30,21 @@ export {
 } from "./FlashProgress";
 export type { FlashResult } from "./FlashResult";
 export { FlashService } from "./FlashService";
+export {
+  ESP_IMAGE_MAGIC,
+  FLASH_INSPECTION_SAMPLE_ADDRESSES,
+  FLASH_INSPECTION_SAMPLE_LENGTH,
+  aggregateFlashInspectionOutcome,
+  classifyFlashRegionBytes,
+  createFailedFlashInspectionReport,
+  createFlashInspectionReport,
+  flashInspectionRequiresConfirmation,
+  formatFlashInspectionMessage,
+  type FlashInspectionOutcome,
+  type FlashInspectionRegion,
+  type FlashInspectionReport,
+  type FlashRegionStatus,
+} from "./flash-inspection";
 export { FlashFeature } from "./flash-page";
 export { FlashPanel } from "./flash-panel";
 export {
