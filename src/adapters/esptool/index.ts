@@ -8,9 +8,22 @@
  */
 
 export { DeviceOwnedTransport } from "./device-owned-transport";
+export { EspToolAdapter } from "./esp-tool-adapter";
 export {
   EspToolChipIdentifier,
   type EspToolSerialPort,
 } from "./esp-tool-chip-identifier";
 export { mapEspToolChipName } from "./map-chip-name";
-export type { ChipIdentificationResult } from "./types";
+export { md5Hex } from "./md5";
+export type {
+  ChipIdentificationResult,
+  EspToolFlashFreq,
+  EspToolFlashImage,
+  EspToolFlashMode,
+  EspToolFlashOptions,
+  EspToolFlashSize,
+  EspToolVerifyImageResult,
+  EspToolVerifyOptions,
+  EspToolVerifyResult,
+  EspToolWriteProgress,
+} from "./types";

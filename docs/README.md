@@ -16,6 +16,7 @@ Internal product and architecture documentation.
 | Communication Session     | [features/communication-session.md](./features/communication-session.md) |
 | Serial Monitor (Minimal)  | [features/serial-monitor.md](./features/serial-monitor.md)               |
 | ESP Identification        | [features/esp-identification.md](./features/esp-identification.md)       |
+| Flash Service (MVP)       | [features/flash-service.md](./features/flash-service.md)                 |
 | Feature template          | [_templates/feature.md](./_templates/feature.md)                         |
 
 ## Process

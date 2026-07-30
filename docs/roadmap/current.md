@@ -1,29 +1,30 @@
 # Current Focus
 
-**Active milestone:** ESP Identification
+**Active milestone:** Flash Service (MVP)
 
 ## Why this next
 
-Flash Engine needs a real chip identity. Identification must run under exclusive `CommunicationSession` ownership, keep `esptool-js` behind an adapter, and update Device + Devices UI—without implementing flashing yet.
+Identification established the esptool adapter and ownership pattern. Flash UI needs a reusable orchestration service (`identify` / `erase` / `flash` / `verify` / `reset`) before any page, firmware library, or progress dialog exists.
 
 ## In scope
 
-1. `docs/features/esp-identification.md`
-2. `src/adapters/esptool` chip detect adapter
-3. `src/features/identification` orchestration
-4. Devices UI chip label (`Chip: ESP32-S3` / `Unknown`)
-5. Additive `DeviceManager.updateDeviceInfo`
+1. `docs/features/flash-service.md`
+2. `EspToolAdapter` erase / write / verify / reset (plus identify) behind `src/adapters/esptool`
+3. `src/features/flash` service types: progress, options, result, errors
+4. Ownership owner id `"flash-service"` with guaranteed release
+5. Structured `FlashProgress` stages for future React consumers
 
 ## Out of scope
 
-Firmware flashing, erase, write, verify, filesystem, OTA, firmware library
+Flash page UI, firmware library, downloads, OTA, filesystem, plugin system, progress dialogs, terminal output
 
 ## Next up
 
-**Flash Engine** — reuse the esptool adapter boundary; acquire `"flash-engine"` ownership.
+**Flash UI** — thin page that calls `FlashService` and renders `FlashProgress`.
 
 ## Related documents
 
+- [Flash Service](../features/flash-service.md)
 - [ESP Identification](../features/esp-identification.md)
 - [Communication Session](../features/communication-session.md)
 - [Backlog](./backlog.md)
