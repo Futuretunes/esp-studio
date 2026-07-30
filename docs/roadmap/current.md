@@ -1,25 +1,25 @@
 # Current Focus
 
-**Active milestone:** Communication Session — implementation complete
+**Active milestone:** Serial Monitor (Minimal) — implementation complete
 
 ## Completed
 
-1. `docs/features/communication-session.md`
-2. `CommunicationSession` + `CommunicationLock` (+ typed errors)
-3. Exclusive ownership and read/write mutexes over `TransportIo`
-4. Raw `Uint8Array` forwarding only
+1. `docs/features/serial-monitor.md`
+2. Live UTF-8 output with auto-scroll
+3. Send text via TextEncoder
+4. Connect if needed / Disconnect / Clear
+5. `CommunicationLock` owner `"serial-monitor"` acquired and released on stop
 
 ## Still out of scope
 
-- Serial Monitor UI / UTF-8 / ANSI / logging
-- Flash Engine / protocol parsing / line buffering
+ANSI, terminal emulation, logging, timestamps, filters, hex mode, themes, line endings, history, macros, flashing, filesystem, OTA
 
 ## Next up
 
-**Serial Monitor** — document first, then a minimal console that acquires `CommunicationSession` ownership, streams bytes, and decodes UTF-8 only in the UI.
+**Flash Engine** — document first. Must acquire `"flash-engine"` ownership and cannot run while Serial Monitor holds the session lock.
 
 ## Related documents
 
-- [Communication Session feature](../features/communication-session.md)
-- [Transport IO feature](../features/transport-io.md)
+- [Serial Monitor feature](../features/serial-monitor.md)
+- [Communication Session](../features/communication-session.md)
 - [Backlog](./backlog.md)

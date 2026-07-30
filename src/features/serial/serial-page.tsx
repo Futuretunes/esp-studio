@@ -1,19 +1,19 @@
 import type { JSX } from "react";
 
-import { FeaturePlaceholder } from "@/components/feature-placeholder";
 import { PageHeader } from "@/components/page-header";
+import { SerialMonitorPanel } from "@/features/serial/serial-monitor-panel";
 
+/**
+ * Serial Monitor feature page (minimal UTF-8 console).
+ */
 export function SerialFeature(): JSX.Element {
   return (
     <div>
       <PageHeader
         title="Serial Monitor"
-        description="Inspect live serial output from connected devices."
+        description="Live UTF-8 serial output and text send over CommunicationSession ownership."
       />
-      <FeaturePlaceholder
-        title="Serial monitor placeholder"
-        description="Web Serial streaming, baud rate controls, and log buffering are deferred. This page is wired and ready for implementation."
-      />
+      <SerialMonitorPanel />
     </div>
   );
 }

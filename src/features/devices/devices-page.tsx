@@ -5,42 +5,12 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { DeviceError } from "@/core/device";
 import { DeviceDiscoveryPanel } from "@/features/devices/device-discovery-panel";
+import { toDeviceSnapshot } from "@/features/devices/to-device-snapshot";
 import {
   isWebSerialSupported,
   WEB_SERIAL_PROVIDER_ID,
 } from "@/providers/web-serial";
-import { useDeviceStore, type DeviceSnapshot } from "@/store";
-
-function toSnapshot(
-  device: {
-    id: string;
-    info: {
-      name: string;
-      providerId: string;
-      chipFamily: DeviceSnapshot["chipFamily"];
-      transportLabel?: string;
-    };
-    connection: { state: DeviceSnapshot["status"] };
-    capabilities: DeviceSnapshot["capabilities"];
-  },
-  providerLabel: string,
-): DeviceSnapshot {
-  const snapshot: DeviceSnapshot = {
-    id: device.id,
-    name: device.info.name,
-    providerId: device.info.providerId,
-    providerLabel,
-    chipFamily: device.info.chipFamily,
-    status: device.connection.state,
-    capabilities: device.capabilities,
-  };
-
-  if (device.info.transportLabel !== undefined) {
-    return { ...snapshot, transportLabel: device.info.transportLabel };
-  }
-
-  return snapshot;
-}
+import { useDeviceStore } from "@/store";
 
 function isCancellationError(error: unknown): boolean {
   if (!(error instanceof DeviceError)) {
@@ -91,7 +61,9 @@ export function DevicesFeature(): JSX.Element {
     try {
       const provider = manager.getProvider(WEB_SERIAL_PROVIDER_ID);
       const device = await manager.connect(WEB_SERIAL_PROVIDER_ID);
-      setActiveDevice(toSnapshot(device, provider?.label ?? "Web Serial"));
+      setActiveDevice(
+        toDeviceSnapshot(device, provider?.label ?? "Web Serial"),
+      );
     } catch (error) {
       setActiveDevice(null);
 
