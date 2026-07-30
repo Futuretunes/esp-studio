@@ -13,9 +13,10 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 | 7        | Communication    | ✅     | Single-owner session over `TransportIo`             |
 | 8        | ESP Identification | ✅     | Chip detect via esptool adapter; Device + UI update |
 | 9        | Flash Service      | ✅     | Orchestration (`FlashService`) over esptool adapter |
-| 9a       | Flash UI           | 🟡     | Local `.bin` flash page + live progress             |
+| 9a       | Flash UI           | ✅     | Local `.bin` flash page + live progress             |
+| 9b       | Firmware Catalog   | 🟡     | Multi-provider catalog; LocalFirmwareProvider only  |
 | 10       | Firmware Plugins   | ⬜     | Installer contribution points + first plugins       |
-| 11       | Firmware Library   | ⬜     | Catalog, versions, local/remote artifacts           |
+| 11       | Firmware Library   | ⬜     | Catalog browser + one-click install                 |
 | 12       | Serial Monitor     | ✅     | Minimal UTF-8 console over `CommunicationSession`   |
 | 13       | Filesystem         | ⬜     | SPIFFS / LittleFS browser                           |
 | 14       | OTA                | ⬜     | Network update flows                                |
@@ -72,10 +73,15 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 - `FlashService` identify / erase / flash / verify / reset with `"flash-service"` ownership.
 - Reusable `FlashProgress` stages for UI consumers.
 
-### Flash UI 🟡
+### Flash UI ✅
 
-- Local `.bin` picker, live progress, friendly errors via `FlashService`.
-- Single image at `0x10000`; firmware library remains separate.
+- Local `.bin` flash page with live progress and friendly errors.
+- Selects firmware via `FirmwareCatalog` (“Local file…” → picker).
+
+### Firmware Catalog 🟡
+
+- Multi-provider `FirmwareCatalog`; MVP ships `LocalFirmwareProvider` only.
+- Flash UI consumes catalog entries; GitHub / ESP Web Tools deferred.
 
 ### Firmware Plugins ⬜
 
@@ -83,7 +89,7 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 
 ### Firmware Library ⬜
 
-- Metadata model, import/export, versioning.
+- Library page browsing the catalog + one-click install.
 
 ### Serial Monitor ✅
 
