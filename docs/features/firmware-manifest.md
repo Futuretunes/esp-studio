@@ -213,12 +213,12 @@ toCatalogManifest(document: FirmwareManifestDocument, providerId: string): Firmw
 
 ## Acceptance Criteria
 
-- [ ] Feature doc with schema, examples, versioning, validation.
-- [ ] `FirmwareManifestSchema.ts`, `FirmwareManifestValidator.ts`, `FirmwareManifestParser.ts`.
-- [ ] Validates required fields, duplicate addresses, chip families, image existence.
-- [ ] Typed validation errors (no `any`).
-- [ ] No GitHub, downloads, or remote manifest fetching.
-- [ ] `pnpm lint` / `typecheck` / `build` pass.
+- [x] Feature doc with schema, examples, versioning, validation.
+- [x] `FirmwareManifestSchema.ts`, `FirmwareManifestValidator.ts`, `FirmwareManifestParser.ts`.
+- [x] Validates required fields, duplicate addresses, chip families, image existence.
+- [x] Typed validation errors (no `any`).
+- [x] No GitHub, downloads, or remote manifest fetching.
+- [x] `pnpm lint` / `typecheck` / `build` pass.
 
 ## Future Improvements
 
@@ -230,6 +230,6 @@ toCatalogManifest(document: FirmwareManifestDocument, providerId: string): Firmw
 ## TODO Checklist
 
 - [x] Documentation reviewed
-- [ ] Implementation complete
-- [ ] `pnpm lint` / `pnpm typecheck` / `pnpm build` pass
-- [ ] Roadmap updated
+- [x] Implementation complete
+- [x] `pnpm lint` / `pnpm typecheck` / `pnpm build` pass
+- [x] Roadmap updated
