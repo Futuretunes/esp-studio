@@ -10,6 +10,7 @@ export type GitHubFirmwareProviderErrorCode =
   | "repository-not-found"
   | "release-not-found"
   | "network-failure"
+  | "proxy-unavailable"
   | "invalid-manifest"
   | "duplicate-manifests"
   | "unsupported-manifest-version"

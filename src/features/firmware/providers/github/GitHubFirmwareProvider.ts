@@ -75,7 +75,7 @@ type CachedPackage =
 /**
  * Parses an `owner/repository` slug.
  *
- * @param slug - User input such as `Aircoookie/WLED`
+ * @param slug - User input such as `wled-dev/WLED`
  */
 export function parseGitHubRepositorySlug(
   slug: string,
@@ -217,14 +217,14 @@ export class GitHubFirmwareProvider implements FirmwareProvider {
    * Downloads at most one manifest JSON asset during discovery. Firmware `.bin`
    * payloads are not downloaded until {@link resolve}.
    *
-   * @param slug - `owner/repository` (example `Aircoookie/WLED`)
+   * @param slug - `owner/repository` (example `wled-dev/WLED`)
    */
   async configureRepository(slug: string): Promise<GitHubReleaseSummary> {
     const ref = parseGitHubRepositorySlug(slug);
     if (ref === null) {
       throw new GitHubFirmwareProviderError(
         "invalid-repository",
-        'Enter a repository as owner/name (for example "Aircoookie/WLED").',
+        'Enter a repository as owner/name (for example "wled-dev/WLED").',
       );
     }
 

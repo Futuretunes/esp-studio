@@ -18,12 +18,15 @@ export function useFilesystemBrowser() {
   const manager = useDeviceManager();
   const activeDevice = useDeviceStore((state) => state.activeDevice);
   const webSerialSupported = useDeviceStore((state) => state.webSerialSupported);
+  const operationOwner = useDeviceStore((state) => state.operationOwner);
   const setWebSerialSupported = useDeviceStore(
     (state) => state.setWebSerialSupported,
   );
 
   const service = useMemo(() => new FilesystemService(manager), [manager]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  /** Single-flight guard: concurrent Refresh / auto-load must not stack reads. */
+  const refreshInFlightRef = useRef(false);
 
   const [rootEntries, setRootEntries] = useState<readonly FilesystemEntry[]>(
     [],
@@ -102,6 +105,10 @@ export function useFilesystemBrowser() {
   );
 
   const refreshRoot = useCallback(async () => {
+    if (refreshInFlightRef.current) {
+      return;
+    }
+
     if (!ensureSupport()) {
       setErrorCode("unsupported");
       setErrorMessage(
@@ -121,6 +128,7 @@ export function useFilesystemBrowser() {
       return;
     }
 
+    refreshInFlightRef.current = true;
     setIsRefreshing(true);
     setErrorCode(null);
     setErrorMessage(null);
@@ -139,6 +147,7 @@ export function useFilesystemBrowser() {
     } finally {
       markLoading("/", false);
       setIsRefreshing(false);
+      refreshInFlightRef.current = false;
     }
   }, [activeDevice, applyError, ensureSupport, markLoading, service]);
 
@@ -157,6 +166,9 @@ export function useFilesystemBrowser() {
 
   const selectEntry = useCallback(
     (entry: FilesystemEntry) => {
+      if (refreshInFlightRef.current) {
+        return;
+      }
       setSelectedPath(entry.path);
       setSelectedKind(entry.kind);
       setPendingUpload(null);
@@ -168,6 +180,10 @@ export function useFilesystemBrowser() {
 
   const toggleDirectory = useCallback(
     async (path: string) => {
+      if (refreshInFlightRef.current) {
+        return;
+      }
+
       if (!activeDevice) {
         setErrorCode("no-device");
         setErrorMessage(
@@ -228,6 +244,14 @@ export function useFilesystemBrowser() {
         return;
       }
 
+      if (refreshInFlightRef.current) {
+        setErrorCode("busy");
+        setErrorMessage(
+          "Filesystem is still reading. Wait for the listing to finish before uploading.",
+        );
+        return;
+      }
+
       setIsTransferring(true);
       setTransferProgress(null);
       setErrorCode(null);
@@ -266,6 +290,9 @@ export function useFilesystemBrowser() {
   );
 
   const requestUpload = useCallback(() => {
+    if (refreshInFlightRef.current || isRefreshing) {
+      return;
+    }
     if (!selectedPath || selectedKind !== "directory") {
       setErrorCode("invalid-path");
       setErrorMessage(
@@ -274,7 +301,7 @@ export function useFilesystemBrowser() {
       return;
     }
     fileInputRef.current?.click();
-  }, [selectedKind, selectedPath]);
+  }, [isRefreshing, selectedKind, selectedPath]);
 
   const handleUploadFileChosen = useCallback(
     async (file: File | null) => {
@@ -307,6 +334,9 @@ export function useFilesystemBrowser() {
       setErrorMessage("Connect a device before downloading.");
       return;
     }
+    if (refreshInFlightRef.current || isRefreshing) {
+      return;
+    }
     if (!selectedPath || selectedKind !== "file") {
       setErrorCode("invalid-path");
       setErrorMessage("Select a file to download.");
@@ -329,11 +359,19 @@ export function useFilesystemBrowser() {
     } finally {
       setIsTransferring(false);
     }
-  }, [activeDevice, applyError, selectedKind, selectedPath, service]);
+  }, [
+    activeDevice,
+    applyError,
+    isRefreshing,
+    selectedKind,
+    selectedPath,
+    service,
+  ]);
 
   return {
     activeDevice,
     webSerialSupported,
+    operationOwner,
     rootEntries,
     childrenByPath,
     expandedPaths,

@@ -32,6 +32,12 @@ export type WebSerialConnectionOptions = {
    * Used by the provider to drop remembered ports.
    */
   readonly onUnexpectedDisconnect?: () => void;
+  /**
+   * Invoked after a successful intentional {@link WebSerialConnection.close}.
+   * Does not run for unexpected browser disconnect (use
+   * {@link WebSerialConnectionOptions.onUnexpectedDisconnect}).
+   */
+  readonly onClosed?: () => void;
 };
 
 /**
@@ -44,6 +50,7 @@ export class WebSerialConnection implements DeviceConnection {
   readonly #port: WebSerialPort;
   readonly #io: WebSerialTransportIo;
   readonly #onUnexpectedDisconnect: (() => void) | undefined;
+  readonly #onClosed: (() => void) | undefined;
   readonly #handleBrowserDisconnect: () => void;
   #state: DeviceConnectionState;
   #lastError: Error | undefined;
@@ -51,7 +58,7 @@ export class WebSerialConnection implements DeviceConnection {
 
   /**
    * @param port - Already-opened Web Serial port.
-   * @param options - Optional unexpected-disconnect hook.
+   * @param options - Optional disconnect / close hooks.
    */
   public constructor(
     port: WebSerialPort,
@@ -61,6 +68,7 @@ export class WebSerialConnection implements DeviceConnection {
     this.#io = new WebSerialTransportIo(port);
     this.#state = "connected";
     this.#onUnexpectedDisconnect = options.onUnexpectedDisconnect;
+    this.#onClosed = options.onClosed;
     this.#handleBrowserDisconnect = () => {
       void this.#onBrowserDisconnect();
     };
@@ -98,6 +106,10 @@ export class WebSerialConnection implements DeviceConnection {
   /**
    * Closes transport IO (if open) and then the underlying `SerialPort`.
    *
+   * Follows the Web Serial pattern: release streams, then `port.close()`.
+   * Does **not** call `SerialPort.forget()` — that revokes the origin grant
+   * and must be an explicit user action (see {@link WebSerialProvider.forgetPort}).
+   *
    * Idempotent: repeated calls resolve without throwing once disconnected.
    */
   public async close(): Promise<void> {
@@ -119,6 +131,7 @@ export class WebSerialConnection implements DeviceConnection {
       }
       this.#state = "disconnected";
       this.#lastError = undefined;
+      this.#onClosed?.();
     } catch (error) {
       const normalized =
         error instanceof Error

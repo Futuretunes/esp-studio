@@ -5,6 +5,7 @@ import {
   Download,
   File,
   Folder,
+  Loader2,
   RefreshCw,
   Upload,
 } from "lucide-react";
@@ -35,6 +36,7 @@ export function FilesystemPanel(): JSX.Element {
   const {
     activeDevice,
     webSerialSupported,
+    operationOwner,
     rootEntries,
     childrenByPath,
     expandedPaths,
@@ -60,11 +62,17 @@ export function FilesystemPanel(): JSX.Element {
 
   const unsupported = webSerialSupported === false;
   const rootLoading = loadingPaths.has("/");
-  const busy = isRefreshing || isTransferring || rootLoading;
+  const readingFilesystem = isRefreshing || rootLoading;
+  const busy = readingFilesystem || isTransferring;
   const uploadDisabled =
     unsupported || busy || !activeDevice || selectedKind !== "directory";
   const downloadDisabled =
     unsupported || busy || !activeDevice || selectedKind !== "file";
+  /** Cross-page DeviceBusyBanner already covers other owners — avoid stacking. */
+  const showInlineBusyAlert =
+    errorMessage !== null &&
+    errorCode === "busy" &&
+    operationOwner === null;
 
   const handleFileInput = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
@@ -108,7 +116,7 @@ export function FilesystemPanel(): JSX.Element {
         </Alert>
       ) : null}
 
-      {errorMessage && errorCode === "busy" ? (
+      {showInlineBusyAlert ? (
         <Alert variant="destructive">
           <AlertTitle>Device busy</AlertTitle>
           <AlertDescription className="space-y-3">
@@ -249,12 +257,16 @@ export function FilesystemPanel(): JSX.Element {
                 variant="secondary"
                 size="sm"
                 disabled={unsupported || busy}
+                aria-busy={readingFilesystem}
                 onClick={() => {
                   void refreshRoot();
                 }}
               >
                 <RefreshCw
-                  className={cn("size-3.5", isRefreshing && "animate-spin")}
+                  className={cn(
+                    "size-3.5",
+                    readingFilesystem && "animate-spin",
+                  )}
                 />
                 Refresh
               </Button>
@@ -271,10 +283,22 @@ export function FilesystemPanel(): JSX.Element {
               <div>
                 <dt className="text-muted-foreground text-xs">Selection</dt>
                 <dd className="truncate font-mono text-xs">
-                  {selectedPath ?? "None — select a folder to upload or a file to download"}
+                  {selectedPath ??
+                    "None — select a folder to upload or a file to download"}
                 </dd>
               </div>
             </dl>
+
+            {readingFilesystem ? (
+              <div
+                className="text-muted-foreground flex items-center gap-2 text-sm"
+                role="status"
+                aria-live="polite"
+              >
+                <Loader2 className="size-4 shrink-0 animate-spin" />
+                <span>Reading filesystem…</span>
+              </div>
+            ) : null}
 
             {isTransferring || transferProgress ? (
               <div className="space-y-2">
@@ -307,8 +331,15 @@ export function FilesystemPanel(): JSX.Element {
             <p className="text-muted-foreground text-sm">
               Connect a device to browse its filesystem.
             </p>
-          ) : rootLoading && rootEntries.length === 0 ? (
-            <div className="space-y-2">
+          ) : readingFilesystem && rootEntries.length === 0 ? (
+            <div className="space-y-3">
+              <div
+                className="text-muted-foreground flex items-center gap-2 text-sm"
+                role="status"
+              >
+                <Loader2 className="size-4 shrink-0 animate-spin" />
+                <span>Reading filesystem…</span>
+              </div>
               <Skeleton className="h-8 w-full" />
               <Skeleton className="h-8 w-5/6" />
               <Skeleton className="h-8 w-4/6" />
@@ -329,7 +360,7 @@ export function FilesystemPanel(): JSX.Element {
                   expandedPaths={expandedPaths}
                   childrenByPath={childrenByPath}
                   loadingPaths={loadingPaths}
-                  disabled={isTransferring}
+                  disabled={busy}
                   onSelect={selectEntry}
                   onToggle={(path) => {
                     void toggleDirectory(path);

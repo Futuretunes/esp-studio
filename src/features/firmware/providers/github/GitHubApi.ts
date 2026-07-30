@@ -123,10 +123,19 @@ export async function downloadAssetBytes(
   }
 
   if (!response.ok) {
+    throwProxyUnavailableIfNeeded(downloadUrl, response.status, label);
     throw new GitHubFirmwareProviderError(
       "network-failure",
       `GitHub returned HTTP ${String(response.status)} while downloading "${label}".`,
     );
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (
+    downloadUrl.startsWith(GITHUB_ASSET_PROXY_PATH) &&
+    contentType.toLowerCase().includes("text/html")
+  ) {
+    throwProxyUnavailableError(label);
   }
 
   try {
@@ -139,6 +148,32 @@ export async function downloadAssetBytes(
       { cause: error },
     );
   }
+}
+
+/**
+ * Honest error when the Vite GitHub asset proxy is missing (static hosts).
+ */
+export const GITHUB_ASSET_PROXY_UNAVAILABLE_MESSAGE =
+  `GitHub release downloads need a same-origin proxy at ${GITHUB_ASSET_PROXY_PATH}. This deployment does not provide that proxy, so browser downloads fail (GitHub CDNs block CORS). Use pnpm dev / pnpm preview, host an equivalent proxy, or flash a local .bin file instead.` as const;
+
+function throwProxyUnavailableIfNeeded(
+  downloadUrl: string,
+  status: number,
+  label: string,
+): void {
+  if (
+    downloadUrl.startsWith(GITHUB_ASSET_PROXY_PATH) &&
+    (status === 404 || status === 405 || status === 501)
+  ) {
+    throwProxyUnavailableError(label);
+  }
+}
+
+function throwProxyUnavailableError(label: string): never {
+  throw new GitHubFirmwareProviderError(
+    "proxy-unavailable",
+    `${GITHUB_ASSET_PROXY_UNAVAILABLE_MESSAGE} (while downloading "${label}").`,
+  );
 }
 
 /**

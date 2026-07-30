@@ -32,12 +32,12 @@ See also:
 
 ## Limitations
 
-- No read/write streaming API exposed yet (Serial Monitor is a later milestone).
 - No baud-rate change after open in this minimal version (baud is chosen at open).
-- No flashing, esptool-js, packet parsing, logging, OTA, filesystem, or auto-reconnect.
-- Chip family is reported as `"unknown"` until a later identification step exists.
+- Chip family is reported as `"unknown"` until identification runs.
 - Port identity is provider-local; unplugging may invalidate stored handles.
 - `getPorts()` only returns ports the origin was previously granted.
+- **Remembered ports in the chooser:** After `port.close()` (Disconnect), Chromium keeps the origin grant. The next `requestPort()` picker typically still shows previously paired ports. This is browser behavior — ESP Studio cannot clear Chrome’s global remembered-device UI.
+- **`SerialPort.forget()`:** Revokes **this origin’s** grant for one port (Forget port). Hardware ports may still appear in the chooser; they are no longer returned by `getPorts()` until the user grants again.
 
 ## Security model
 

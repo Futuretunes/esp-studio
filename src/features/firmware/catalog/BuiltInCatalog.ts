@@ -16,7 +16,7 @@ export const BUILT_IN_FIRMWARE_CATALOG: readonly BuiltInCatalogEntry[] = [
     name: "WLED",
     description:
       "Control addressable LED strips and matrices with a polished web UI.",
-    repository: "Aircoookie/WLED",
+    repository: "wled-dev/WLED",
     category: "lighting",
     chipFamilies: ["esp8266", "esp32", "esp32-s2", "esp32-s3", "esp32-c3"],
     icon: "wled",

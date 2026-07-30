@@ -1,6 +1,10 @@
 import type { JSX } from "react";
 import { Link } from "react-router-dom";
 
+import {
+  deviceBusyAttemptOwner,
+  type DeviceBusyAttempt,
+} from "@/components/device-busy-attempt";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,11 +15,14 @@ import { useDeviceStore } from "@/store";
 
 type DeviceBusyBannerProps = {
   /** Page context for tailored copy. */
-  attempting?: "flash" | "identify" | "filesystem" | "serial";
+  attempting?: DeviceBusyAttempt;
 };
 
 /**
- * Cross-page busy banner when another tool owns the connected device.
+ * Cross-page busy banner when **another** tool owns the connected device.
+ *
+ * Hidden when this page is the current owner so in-page progress UI is not
+ * duplicated by a second busy alert.
  */
 export function DeviceBusyBanner({
   attempting,
@@ -24,6 +31,13 @@ export function DeviceBusyBanner({
   const activeDevice = useDeviceStore((state) => state.activeDevice);
 
   if (!activeDevice || operationOwner === null) {
+    return null;
+  }
+
+  if (
+    attempting !== undefined &&
+    operationOwner === deviceBusyAttemptOwner(attempting)
+  ) {
     return null;
   }
 

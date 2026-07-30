@@ -44,6 +44,14 @@ export function isWebSerialSupported(): boolean {
  *
  * Implements {@link DeviceProvider} using `navigator.serial`. Browser-specific
  * types never leave this module — consumers only see Device Layer contracts.
+ *
+ * ## Permission / remembered ports
+ *
+ * Chromium keeps origin-scoped grants for serial ports. After `port.close()`,
+ * the browser still lists those ports in `getPorts()` and typically still shows
+ * them in the `requestPort()` chooser. ESP Studio **cannot** clear Chrome’s
+ * global remembered-device UI — only `SerialPort.forget()` revokes **this
+ * origin’s** grant for a specific port.
  */
 export class WebSerialProvider implements DeviceProvider {
   /**
@@ -159,9 +167,11 @@ export class WebSerialProvider implements DeviceProvider {
     try {
       await port.open({ baudRate });
       this.#throwIfAborted(options?.signal);
+      // Keep the closed port in `#ports` after intentional close so
+      // Forget Port / reopen via connectToDevice can resolve the same grant.
       return new WebSerialConnection(port, {
         onUnexpectedDisconnect: () => {
-          this.#forgetPort(info.id);
+          this.#dropPort(info.id);
         },
       });
     } catch (error) {
@@ -197,6 +207,48 @@ export class WebSerialProvider implements DeviceProvider {
     return this.#ports.get(deviceId);
   }
 
+  /**
+   * Revokes this origin’s Web Serial grant for a previously remembered port.
+   *
+   * Calls `SerialPort.close()` best-effort (if still open), then
+   * `SerialPort.forget()` when the browser implements it, and drops the
+   * provider’s in-memory mapping.
+   *
+   * This does **not** clear Chrome’s global device inventory — only the
+   * permission grant for **this origin**. Hardware ports may still appear in
+   * the next `requestPort()` chooser.
+   *
+   * @param deviceId - Device id previously returned by this provider.
+   * @throws {DeviceError} When the device id is unknown or forget fails.
+   */
+  public async forgetPort(deviceId: string): Promise<void> {
+    const port = this.#ports.get(deviceId);
+    if (!port) {
+      throw new DeviceError(
+        `Unknown Web Serial device "${deviceId}". Nothing to forget.`,
+      );
+    }
+
+    try {
+      await port.close();
+    } catch {
+      // Port may already be closed after Disconnect.
+    }
+
+    if (typeof port.forget === "function") {
+      try {
+        await port.forget();
+      } catch (error) {
+        this.#dropPort(deviceId);
+        throw new DeviceError("Failed to forget Web Serial port grant", {
+          cause: error,
+        });
+      }
+    }
+
+    this.#dropPort(deviceId);
+  }
+
   #requireSerial() {
     const serial = getWebSerial();
     if (!serial) {
@@ -220,11 +272,12 @@ export class WebSerialProvider implements DeviceProvider {
   }
 
   /**
-   * Drops a remembered port when the browser reports it is gone.
+   * Drops a remembered port when the browser reports it is gone or the user
+   * forgets the grant.
    *
    * @param deviceId - Device id previously returned by this provider.
    */
-  #forgetPort(deviceId: string): void {
+  #dropPort(deviceId: string): void {
     this.#ports.delete(deviceId);
   }
 
@@ -237,7 +290,7 @@ export class WebSerialProvider implements DeviceProvider {
     }
 
     const onDisconnect = (): void => {
-      this.#forgetPort(deviceId);
+      this.#dropPort(deviceId);
       port.removeEventListener?.("disconnect", onDisconnect);
     };
 

@@ -104,11 +104,12 @@ Root `/` lists filesystem **volumes** (partition labels) as directories. Expandi
 
 ## UI
 
-- Device summary + Refresh
-- Tree: expand / collapse directories
+- Device summary + Refresh / Upload / Download
+- Tree: expand / collapse directories (disabled while a root read is in flight)
+- Immediate “Reading filesystem…” status + spinner while listing (SPIFFS can take 10+s)
+- Single-flight Refresh: additional clicks are ignored until the in-flight read finishes or fails
 - File rows show size
-- Skeleton while loading; alerts for errors
-- No mutate actions
+- Skeleton while loading; alerts for errors (busy alerts are not stacked with `DeviceBusyBanner`)
 
 ## Acceptance Criteria
 
