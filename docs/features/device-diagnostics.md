@@ -101,7 +101,7 @@ Excluded:
 
 ## Suggested next feature
 
-**OTA Updates** (post-beta), after hardware QA and a tagged beta release.
+**v0.9.1** (bug fixes, hardware compatibility, performance), then **OTA (v0.10)**. See [Version roadmap](../roadmap/versions.md).
 
 ## TODO Checklist
 

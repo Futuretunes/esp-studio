@@ -44,6 +44,7 @@ CI and FTP deploy: [`docs/features/deployment.md`](./docs/features/deployment.md
 ## Releases
 
 - [v0.9.0-beta.1](./docs/releases/v0.9.0-beta.1.md) — first public beta / RC notes
+- [Version roadmap](./docs/roadmap/versions.md) — v0.9.1 → v1.0
 
 ## Architecture
 

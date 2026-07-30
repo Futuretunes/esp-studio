@@ -8,6 +8,7 @@ Internal product and architecture documentation.
 | Device Layer architecture | [architecture/device-layer.md](./architecture/device-layer.md)           |
 | Plugin system             | [architecture/plugin-system.md](./architecture/plugin-system.md)         |
 | Roadmap backlog           | [roadmap/backlog.md](./roadmap/backlog.md)                               |
+| Version roadmap           | [roadmap/versions.md](./roadmap/versions.md)                             |
 | Current focus             | [roadmap/current.md](./roadmap/current.md)                               |
 | Device Layer feature      | [features/device-layer.md](./features/device-layer.md)                   |
 | Web Serial provider       | [features/web-serial.md](./features/web-serial.md)                       |

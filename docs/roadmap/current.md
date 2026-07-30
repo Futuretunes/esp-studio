@@ -1,25 +1,36 @@
 # Current Focus
 
-**Active milestone:** v0.9.0-beta.1 Release Candidate
+**Active milestone:** Tag **v0.9.0-beta.1** (Public Beta), then **v0.9.1**
 
 ## Why this next
 
-Architecture, CD, and diagnostics are complete. This milestone is quality-only: honest beta copy, a11y polish, release notes, and a versioned RC tag — no new product features.
+Public beta scope is complete (Flash, Library, Filesystem, Diagnostics, Deployment). Finish the RC tag, then stabilize with bug fixes, hardware compatibility, and performance — still no new product features.
 
-## In scope
+## In scope (now)
 
-1. `docs/releases/v0.9.0-beta.1.md`
-2. Copy / a11y / dead-UI honesty (OTA, Settings)
-3. Version bump + quality gates
-4. Route smoke verification
+1. Publish GitHub tag / Release for `v0.9.0-beta.1`
+2. Production deploy of the tagged build
+3. Start hardware QA matrix (`docs/hardware-compatibility.md`)
 
-## Out of scope
+## Next (v0.9.1)
 
-OTA implementation, IDE/Monaco, plugins, identify enrichment, architectural refactors
+- Bug fixes from beta feedback
+- Hardware compatibility verification
+- Performance polish
+
+## Out of scope until later versions
+
+| Version | Theme |
+| ------- | ----- |
+| v0.10 | OTA |
+| v0.11 | NVS |
+| v0.12 | Partition Manager |
+| v0.13 | Monaco IDE |
+| v1.0 | Stable |
 
 ## Related documents
 
+- [Version roadmap](./versions.md)
 - [Release notes v0.9.0-beta.1](../releases/v0.9.0-beta.1.md)
 - [Hardware compatibility](../hardware-compatibility.md)
-- [Device Diagnostics](../features/device-diagnostics.md)
 - [Backlog](./backlog.md)

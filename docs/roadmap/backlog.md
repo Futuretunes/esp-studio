@@ -25,11 +25,16 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 | 13       | Filesystem         | ✅     | SPIFFS / LittleFS browse + upload/download          |
 | 13a      | Public Beta Harden | ✅     | Reliability, UX consistency, smoke tests            |
 | 13b      | FS Upload/Download | ✅     | Transfer files via FilesystemService + adapter        |
-| 14       | OTA                | ⬜     | Network update flows                                |
-| 15       | IDE                | ⬜     | Monaco-based editing shell                          |
-| 16       | Release v1.0       | 🟡     | RC docs + quality; hardware QA then tag             |
+| 14       | OTA (v0.10)        | ⬜     | Network update flows                                |
+| 15       | IDE (v0.13)        | ⬜     | Monaco-based editing shell                          |
+| 15a      | NVS (v0.11)        | ⬜     | Non-volatile storage workflows                      |
+| 15b      | Partitions (v0.12) | ⬜     | Partition table manager                             |
+| 16       | Release track      | 🟡     | See [versions.md](./versions.md)                    |
 | 16a      | Continuous Deploy  | ✅     | CI + FTP deploy of dist/ to shared hosting          |
 | 16b      | Device Diagnostics | ✅     | Support report export for bug reports               |
+| 16c      | v0.9.0-beta.1      | 🟡     | Public beta RC — Flash/Library/FS/Diagnostics/Deploy |
+| 16d      | v0.9.1             | ⬜     | Bug fixes · hardware compatibility · performance    |
+| 16e      | v1.0 Stable        | ⬜     | Stable release after v0.10–v0.13 themes             |
 
 ## Detail by milestone
 
@@ -146,11 +151,19 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 - Progress, overwrite confirmation; SPIFFS primary; LittleFS transfer deferred.
 - No rename/delete/mkdir.
 
-### OTA ⬜
+### OTA (v0.10) ⬜
 
 - Network provider targets + update orchestration.
 
-### IDE ⬜
+### NVS (v0.11) ⬜
+
+- Browse / edit non-volatile storage.
+
+### Partition Manager (v0.12) ⬜
+
+- Partition table inspection and management.
+
+### IDE (v0.13) ⬜
 
 - Monaco integration, project files, optional language tools.
 
@@ -165,14 +178,24 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 - Diagnostics page aggregating device/browser/build facts.
 - Export `diagnostics.json` for support (no serial logs / FS contents).
 
-### Release v1.0 🟡
+### v0.9.0-beta.1 (Public Beta) 🟡
 
-- RC: `docs/releases/v0.9.0-beta.1.md`, honest beta copy, version tag prep.
-- Remaining: hardware QA matrix, GitHub Release tag, production deploy.
-- Later: API freeze notes, example provider, sample firmware plugin.
+- ✔ Flash · ✔ Library · ✔ Filesystem · ✔ Diagnostics · ✔ Deployment
+- RC docs + quality; remaining: tag, deploy, hardware QA start.
+- Notes: [releases/v0.9.0-beta.1.md](../releases/v0.9.0-beta.1.md)
+
+### v0.9.1 ⬜
+
+- Bug fixes, hardware compatibility matrix, performance — no new product features.
+
+### v1.0 Stable ⬜
+
+- After v0.10–v0.13 themes; API freeze for Device Layer + Flash Engine.
+- Docs, CI, hardware-verified transports.
 
 ## Related documents
 
+- [Version roadmap](./versions.md)
 - [Current focus](./current.md)
 - [Architecture overview](../architecture/overview.md)
 - [Device Layer feature](../features/device-layer.md)
