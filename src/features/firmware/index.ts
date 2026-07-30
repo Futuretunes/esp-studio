@@ -70,4 +70,3 @@ export {
   type BuiltInCatalogCategory,
   type BuiltInCatalogEntry,
 } from "./catalog";
-export { FirmwareFeature } from "./firmware-page";

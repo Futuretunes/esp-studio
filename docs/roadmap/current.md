@@ -1,24 +1,25 @@
 # Current Focus
 
-**Active milestone:** Filesystem Upload & Download (MVP)
+**Active milestone:** Firmware Library
 
 ## Why this next
 
-Public beta hardening stabilized disconnect/UX. Next is on-device file transfer on top of the existing browse architecture—no new abstraction layers.
+Firmware Platform and Filesystem Platform are complete. Next is the product browse experience: discover firmware and launch the existing one-click install flow—no new abstractions.
 
 ## In scope
 
-1. `docs/features/filesystem-transfer.md`
-2. Extend `FilesystemService` + `EspFilesystemAdapter` for upload/download
-3. Progress + overwrite confirmation + Filesystem page actions
-4. SPIFFS primary; LittleFS best-effort
+1. `docs/features/firmware-library.md`
+2. `src/features/library/` browse UI (search, categories, cards)
+3. Deep-link Install → `/flash?project=<id>` + `selectBuiltInEntry`
+4. Recently used + install-history placeholder
 
 ## Out of scope
 
-Rename, delete, create folder, drag-and-drop, text editor, OTA, new service layers
+Remote search, auth, ratings, reviews, downloads telemetry, OTA, new providers
 
 ## Related documents
 
-- [Filesystem Transfer](../features/filesystem-transfer.md)
-- [Filesystem Browser](../features/filesystem-browser.md)
+- [Firmware Library](../features/firmware-library.md)
+- [One-click Install](../features/one-click-install.md)
+- [Built-in Firmware Catalog](../features/built-in-firmware-catalog.md)
 - [Backlog](./backlog.md)

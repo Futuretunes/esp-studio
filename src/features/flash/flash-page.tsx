@@ -1,4 +1,5 @@
 import { useEffect, type JSX } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { PageHeader } from "@/components/page-header";
 import { FlashPanel } from "@/features/flash/flash-panel";
@@ -6,8 +7,13 @@ import { useFlashWorkflow } from "@/features/flash/use-flash-workflow";
 
 /**
  * Flash feature: one-click install through catalog + {@link FlashService}.
+ *
+ * Accepts `?project=<builtInId>` from the Firmware Library Install CTA.
  */
 export function FlashFeature(): JSX.Element {
+  const [searchParams] = useSearchParams();
+  const projectParam = searchParams.get("project");
+
   const {
     activeDevice,
     webSerialSupported,
@@ -46,6 +52,29 @@ export function FlashFeature(): JSX.Element {
   useEffect(() => {
     ensureSupport();
   }, [ensureSupport]);
+
+  useEffect(() => {
+    if (projectParam === null || projectParam.length === 0) {
+      return;
+    }
+    if (builtInEntries.length === 0) {
+      return;
+    }
+    if (selectedBuiltInId === projectParam) {
+      return;
+    }
+    if (!builtInEntries.some((entry) => entry.id === projectParam)) {
+      return;
+    }
+    setFirmwareSource("builtin");
+    selectBuiltInEntry(projectParam);
+  }, [
+    builtInEntries,
+    projectParam,
+    selectBuiltInEntry,
+    selectedBuiltInId,
+    setFirmwareSource,
+  ]);
 
   return (
     <div>

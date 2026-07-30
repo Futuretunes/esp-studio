@@ -6,8 +6,8 @@ import { DashboardCard } from "@/features/dashboard/dashboard-card";
 
 const DASHBOARD_CARD_IDS = [
   "devices",
-  "flash",
   "firmware",
+  "flash",
   "serial",
   "filesystem",
   "ota",
@@ -36,9 +36,9 @@ export function DashboardFeature(): JSX.Element {
           Connect a device, then flash, monitor, and manage firmware
         </h2>
         <p className="text-muted-foreground mt-2 max-w-2xl text-sm">
-          Connect a board on Devices, install firmware from Flash, watch logs in
-          Serial, and browse on-device storage from Filesystem — all in the
-          browser over Web Serial.
+          Connect a board on Devices, discover projects in the Firmware Library,
+          install from Flash, watch logs in Serial, and browse storage in
+          Filesystem — all in the browser over Web Serial.
         </p>
       </div>
 
