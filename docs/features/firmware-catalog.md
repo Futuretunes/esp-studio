@@ -117,12 +117,12 @@ class LocalFirmwareProvider implements FirmwareProvider {
 
 ## Acceptance Criteria
 
-- [ ] Feature doc exists.
-- [ ] Catalog supports multiple providers; only `LocalFirmwareProvider` implemented.
-- [ ] Flash page selects firmware from the catalog (“Local file…” → file picker).
-- [ ] Flash still uses `FlashService`.
-- [ ] No GitHub, downloads, or one-click install.
-- [ ] Strict TypeScript; `pnpm lint` / `typecheck` / `build` pass.
+- [x] Feature doc exists.
+- [x] Catalog supports multiple providers; only `LocalFirmwareProvider` implemented.
+- [x] Flash page selects firmware from the catalog (“Local file…” → file picker).
+- [x] Flash still uses `FlashService`.
+- [x] No GitHub, downloads, or one-click install.
+- [x] Strict TypeScript; `pnpm lint` / `typecheck` / `build` pass.
 
 ## Future Improvements
 
@@ -135,6 +135,6 @@ class LocalFirmwareProvider implements FirmwareProvider {
 ## TODO Checklist
 
 - [x] Documentation reviewed
-- [ ] Implementation complete
-- [ ] `pnpm lint` / `pnpm typecheck` / `pnpm build` pass
-- [ ] Roadmap updated
+- [x] Implementation complete
+- [x] `pnpm lint` / `pnpm typecheck` / `pnpm build` pass
+- [x] Roadmap updated
