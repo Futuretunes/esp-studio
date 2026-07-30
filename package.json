@@ -5,7 +5,9 @@
   "type": "module",
   "description": "All-in-one web platform for ESP8266 & ESP32 development",
   "scripts": {
+    "predev": "node scripts/generate-build-info.mjs",
     "dev": "vite",
+    "prebuild": "node scripts/generate-build-info.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -14,7 +16,8 @@
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:info": "node scripts/generate-build-info.mjs"
   },
   "dependencies": {
     "@radix-ui/react-scroll-area": "^1.2.18",
