@@ -1,12 +1,18 @@
 import type { JSX } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 
+import { getNavItemByPath } from "@/app/navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import { AppHeader, AppSidebar } from "@/layouts/app-shell";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/store";
 
 export function AppLayout(): JSX.Element {
+  const location = useLocation();
+  const navItem = getNavItemByPath(location.pathname);
+  useDocumentTitle(navItem?.title ?? "");
+
   const sidebarCollapsed = useUiStore((state) => state.sidebarCollapsed);
   const mobileSidebarOpen = useUiStore((state) => state.mobileSidebarOpen);
   const setMobileSidebarOpen = useUiStore(

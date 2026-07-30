@@ -64,6 +64,7 @@ export function AppSidebar({ className }: AppSidebarProps): JSX.Element {
                 key={item.id}
                 to={item.path}
                 end={item.path === "/"}
+                aria-label={sidebarCollapsed ? item.label : undefined}
                 onClick={() => {
                   setMobileSidebarOpen(false);
                 }}
@@ -108,12 +109,18 @@ export function AppSidebar({ className }: AppSidebarProps): JSX.Element {
           </div>
         ) : (
           <div
+            role="status"
             className={cn(
               "mx-auto size-2.5 rounded-full",
               activeDevice?.status === "connected"
                 ? "bg-emerald-400"
                 : "bg-muted-foreground/40",
             )}
+            aria-label={
+              activeDevice
+                ? `${activeDevice.name} · ${activeDevice.status}`
+                : "No device connected"
+            }
             title={
               activeDevice
                 ? `${activeDevice.name} · ${activeDevice.status}`

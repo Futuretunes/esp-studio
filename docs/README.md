@@ -30,6 +30,7 @@ Internal product and architecture documentation.
 | Device Diagnostics        | [features/device-diagnostics.md](./features/device-diagnostics.md)       |
 | Public Beta Hardening     | [features/public-beta-hardening.md](./features/public-beta-hardening.md) |
 | Hardware compatibility    | [hardware-compatibility.md](./hardware-compatibility.md)                 |
+| Release v0.9.0-beta.1     | [releases/v0.9.0-beta.1.md](./releases/v0.9.0-beta.1.md)                 |
 | Feature template          | [_templates/feature.md](./_templates/feature.md)                         |
 
 ## Process

@@ -8,11 +8,11 @@ export function OtaFeature(): JSX.Element {
     <div>
       <PageHeader
         title="OTA Updates"
-        description="Push over-the-air firmware updates to networked ESP devices."
+        description="Over-the-air updates are not included in this beta. Use Flash over Web Serial to install firmware."
       />
       <FeaturePlaceholder
-        title="OTA updates placeholder"
-        description="Target discovery, update packaging, and progress tracking will be implemented in a later milestone."
+        title="Coming in a later release"
+        description="Target discovery, packaging, and progress tracking are not available yet."
       />
     </div>
   );

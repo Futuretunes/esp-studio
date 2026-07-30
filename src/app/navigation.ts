@@ -6,14 +6,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "Dashboard",
     title: "Dashboard",
     path: "/",
-    description: "Overview of ESP Studio tools and device status",
+    description: "Overview of ESP Studio tools — connect, flash, monitor, and manage boards",
   },
   {
     id: "devices",
     label: "Devices",
     title: "Connect Device",
     path: "/devices",
-    description: "Connect and manage ESP8266 / ESP32 boards",
+    description: "Connect ESP8266 / ESP32 boards over Web Serial",
   },
   {
     id: "firmware",
@@ -27,7 +27,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "Flash",
     title: "Install Firmware",
     path: "/flash",
-    description: "One-click install and local firmware flashing",
+    description: "Connect a device, choose a project, then install firmware",
   },
   {
     id: "serial",
@@ -41,28 +41,28 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "Filesystem",
     title: "Filesystem",
     path: "/filesystem",
-    description: "Browse and edit device filesystem contents",
+    description: "Browse, upload, and download files on the device",
   },
   {
     id: "ota",
     label: "OTA",
     title: "OTA Updates",
     path: "/ota",
-    description: "Push over-the-air firmware updates",
+    description: "Not available in this beta — network OTA is planned later",
   },
   {
     id: "diagnostics",
     label: "Diagnostics",
     title: "Diagnostics",
     path: "/diagnostics",
-    description: "Device and system report for support",
+    description: "Inspect connection and environment facts, then export a support report",
   },
   {
     id: "settings",
     label: "Settings",
     title: "Settings",
     path: "/settings",
-    description: "Configure ESP Studio preferences",
+    description: "Theme and about information for this session",
   },
 ] as const;
 

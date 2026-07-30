@@ -315,7 +315,7 @@ export function FilesystemPanel(): JSX.Element {
             </div>
           ) : rootEntries.length === 0 ? (
             <p className="text-muted-foreground text-sm">
-              No filesystem volumes are listed yet. Tap Refresh after ensuring
+              No filesystem volumes are listed yet. Click Refresh after ensuring
               the Serial Monitor is stopped.
             </p>
           ) : (

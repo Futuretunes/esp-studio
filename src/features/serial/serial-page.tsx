@@ -11,7 +11,7 @@ export function SerialFeature(): JSX.Element {
     <div>
       <PageHeader
         title="Serial Monitor"
-        description="Live UTF-8 serial output and text send over CommunicationSession ownership."
+        description="Live serial output and send text to the connected board."
       />
       <SerialMonitorPanel />
     </div>

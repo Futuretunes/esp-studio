@@ -12,6 +12,12 @@ Browser-based platform for ESP8266 and ESP32 development.
 - TanStack Query
 - Lucide React
 
+## Requirements
+
+- **Node.js ≥ 20**
+- **pnpm** (see `packageManager` in `package.json`; `corepack enable` recommended)
+- **Chromium** (Chrome / Edge / Opera) for Web Serial device features, over HTTPS or localhost
+
 ## Getting started
 
 ```bash
@@ -34,6 +40,10 @@ Open [http://localhost:5173](http://localhost:5173).
 | `pnpm preview`   | Preview the production build            |
 
 CI and FTP deploy: [`docs/features/deployment.md`](./docs/features/deployment.md).
+
+## Releases
+
+- [v0.9.0-beta.1](./docs/releases/v0.9.0-beta.1.md) — first public beta / RC notes
 
 ## Architecture
 

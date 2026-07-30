@@ -1,24 +1,25 @@
 # Current Focus
 
-**Active milestone:** Release readiness / hardware QA (v1.0 beta)
+**Active milestone:** v0.9.0-beta.1 Release Candidate
 
 ## Why this next
 
-Architecture, CD, and support diagnostics are complete. Next priority is hardware QA against the compatibility matrix and a tagged public beta — not more product features.
+Architecture, CD, and diagnostics are complete. This milestone is quality-only: honest beta copy, a11y polish, release notes, and a versioned RC tag — no new product features.
 
 ## In scope
 
-1. Hardware QA matrix (`docs/hardware-compatibility.md`)
-2. Smoke / manual verification on real boards
-3. Beta tag + release notes
+1. `docs/releases/v0.9.0-beta.1.md`
+2. Copy / a11y / dead-UI honesty (OTA, Settings)
+3. Version bump + quality gates
+4. Route smoke verification
 
 ## Out of scope
 
-OTA, IDE/Monaco, firmware plugins, major UX redesigns (post-beta)
+OTA implementation, IDE/Monaco, plugins, identify enrichment, architectural refactors
 
 ## Related documents
 
-- [Device Diagnostics](../features/device-diagnostics.md)
+- [Release notes v0.9.0-beta.1](../releases/v0.9.0-beta.1.md)
 - [Hardware compatibility](../hardware-compatibility.md)
-- [Continuous Deployment](../features/deployment.md)
+- [Device Diagnostics](../features/device-diagnostics.md)
 - [Backlog](./backlog.md)

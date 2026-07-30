@@ -86,4 +86,4 @@ Documented matrix in [hardware-compatibility.md](../hardware-compatibility.md). 
 
 - Hardware verification rows in `docs/hardware-compatibility.md` (cloud agents cannot attach UART)
 - Optional: mid-flash cancellation UX (AbortController plumbing exists partially elsewhere)
-- Dedicated Firmware Library page still deferred (Flash covers install flows)
+- Dedicated Firmware Library page shipped (`/firmware`); OTA remains deferred

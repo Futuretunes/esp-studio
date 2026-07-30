@@ -4,7 +4,7 @@
 
 ### Product scope
 
-ESP Studio is a browser-only SPA (React + Vite + TypeScript). There is **no backend**, database, or Docker dependency. Device connect, chip identification, Serial Monitor, and local `.bin` flashing (via `FlashService`) are in scope; firmware library / OTA remain later milestones.
+ESP Studio is a browser-only SPA (React + Vite + TypeScript). There is **no backend**, database, or Docker dependency. Device connect, chip identification, Serial Monitor, local `.bin` flashing (via `FlashService`), Firmware Library, filesystem browse/transfer, and Diagnostics are in scope; **OTA** remains a later milestone.
 
 ### Required service
 
@@ -34,4 +34,5 @@ See `README.md` / `package.json` scripts for `pnpm lint`, `pnpm typecheck`, `pnp
 - One-click Install UX lives on the Flash page (`/flash?project=<builtInId>` from the Firmware Library). Selecting a built-in project auto-configures GitHub, prefers chip-compatible options, auto-resolves when possible, and exposes a primary **Install Firmware** button over `FlashService.flash` (verify + reset).
 - Firmware Library (`/firmware`, `src/features/library`) browses `BuiltInCatalog` with search/categories and deep-links Install into Flash. Recently used ids use localStorage; install history is a placeholder only.
 - Device Diagnostics (`/diagnostics`, `src/features/diagnostics`) only aggregates existing store / DeviceManager / build-info / recent-library facts. Export `diagnostics.json` must never include Serial Monitor output or filesystem contents. Reserved hardware fields (`chipRevision`, `flashSize`, …) stay `null` until Identify exposes them — do not invent values.
+- Release Candidate notes live in `docs/releases/v0.9.0-beta.1.md`. Architecture is frozen for beta: no new product features or abstraction layers; quality/docs only until the tag ships.
 - Filesystem browse owner id is `"filesystem-browser"` (`src/features/filesystem`). Requires `TransportIo` **closed** (like Flash). Feature code uses `FilesystemService` + `EspFilesystemAdapter` only; flash reads/writes go through `EspToolAdapter` (never import `esptool-js` outside `src/adapters/esptool`). Upload/download rebuild SPIFFS volume images; LittleFS transfer may return `unsupported` in this MVP.

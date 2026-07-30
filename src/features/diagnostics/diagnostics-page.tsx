@@ -233,7 +233,7 @@ export function DiagnosticsPage(): JSX.Element {
         <div className="grid gap-4 lg:grid-cols-2">
           <DiagnosticsCard
             title="Device"
-            description="Live Device Layer snapshot and identify metadata."
+            description="Connected device details and chip identity."
           >
             <dl className="grid gap-3 sm:grid-cols-2">
               <DiagnosticsField
@@ -337,7 +337,7 @@ export function DiagnosticsPage(): JSX.Element {
 
           <DiagnosticsCard
             title="Firmware context"
-            description="Recent Firmware Library selection (not verified on-device)."
+            description="Last project opened from the Firmware Library (not read from the chip)."
           >
             <dl className="grid gap-3 sm:grid-cols-2">
               <DiagnosticsField

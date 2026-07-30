@@ -256,15 +256,17 @@ export function FlashPanel({
                   Retry load
                 </Button>
               ) : null}
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                disabled={installDisabled}
-                onClick={onInstall}
-              >
-                Retry install
-              </Button>
+              {resolved ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  disabled={installDisabled}
+                  onClick={onInstall}
+                >
+                  Retry install
+                </Button>
+              ) : null}
             </div>
           </AlertDescription>
         </Alert>
@@ -526,7 +528,7 @@ export function FlashPanel({
                           </div>
                           <div className="flex shrink-0 flex-col items-end gap-1">
                             {entry.featured ? (
-                              <Badge variant="secondary">Featured</Badge>
+                              <Badge variant="secondary">Popular</Badge>
                             ) : null}
                             <Badge variant="outline">
                               {formatCategoryLabel(entry.category)}

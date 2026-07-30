@@ -31,9 +31,16 @@ export function DashboardCard({ item }: DashboardCardProps): JSX.Element {
       </CardHeader>
       <CardFooter>
         <Button asChild variant="ghost" className="px-0 hover:bg-transparent">
-          <Link to={item.path} className="inline-flex items-center gap-1.5">
+          <Link
+            to={item.path}
+            className="inline-flex items-center gap-1.5"
+            aria-label={`Open ${item.title}`}
+          >
             Open
-            <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+            <ArrowRight
+              className="size-4 transition-transform group-hover:translate-x-0.5"
+              aria-hidden
+            />
           </Link>
         </Button>
       </CardFooter>
