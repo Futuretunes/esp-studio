@@ -34,6 +34,8 @@ Open [http://localhost:5173](http://localhost:5173).
 
 ## Architecture
 
-Feature-based layout under `src/features/*`, with shared UI in `src/components`, app shell in `src/layouts`, and route pages in `src/pages`.
+Feature-based layout under `src/features/*`, with shared UI in `src/components`, app shell in `src/layouts`, and route pages in `src/pages`. Domain contracts live under `src/core/*` (see Device Layer).
 
-Flashing and Web Serial are intentionally **not** implemented in this foundation.
+Product and architecture docs: [`docs/README.md`](./docs/README.md).
+
+Flashing and Web Serial are intentionally **not** implemented yet; use the Device Layer (`src/core/device`) as the stable boundary for future providers.
