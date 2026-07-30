@@ -22,7 +22,7 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 | 10       | Firmware Plugins   | ⬜     | Installer contribution points + first plugins       |
 | 11       | Firmware Library   | ⬜     | Catalog browser + one-click install                 |
 | 12       | Serial Monitor     | ✅     | Minimal UTF-8 console over `CommunicationSession`   |
-| 13       | Filesystem         | ⬜     | SPIFFS / LittleFS browser                           |
+| 13       | Filesystem         | 🟡     | SPIFFS / LittleFS browse-only browser               |
 | 14       | OTA                | ⬜     | Network update flows                                |
 | 15       | IDE                | ⬜     | Monaco-based editing shell                          |
 | 16       | Release v1.0       | ⬜     | Documented APIs, tests, at least one transport      |
@@ -123,9 +123,10 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 - Acquire `CommunicationSession` ownership (`"serial-monitor"`); UTF-8 decode/encode in the UI layer.
 - Live output, auto-scroll, send text, connect/disconnect, clear (minimal).
 
-### Filesystem ⬜
+### Filesystem 🟡
 
-- Tree browser, upload/download, safe path handling.
+- Browse-only SPIFFS / LittleFS tree via `FilesystemService` + `EspFilesystemAdapter`.
+- Upload / download / mutate deferred.
 
 ### OTA ⬜
 

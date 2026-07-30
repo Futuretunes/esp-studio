@@ -23,6 +23,7 @@ Internal product and architecture documentation.
 | GitHub Firmware Provider  | [features/github-firmware-provider.md](./features/github-firmware-provider.md) |
 | Built-in Firmware Catalog | [features/built-in-firmware-catalog.md](./features/built-in-firmware-catalog.md) |
 | One-click Install         | [features/one-click-install.md](./features/one-click-install.md)         |
+| Filesystem Browser        | [features/filesystem-browser.md](./features/filesystem-browser.md)       |
 | Feature template          | [_templates/feature.md](./_templates/feature.md)                         |
 
 ## Process
