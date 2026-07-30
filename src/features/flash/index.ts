@@ -45,6 +45,13 @@ export {
   type FlashInspectionReport,
   type FlashRegionStatus,
 } from "./flash-inspection";
+export {
+  APP_ONLY_PRESERVE_MESSAGE,
+  BLANK_APP_ONLY_STOP_MESSAGE,
+  POST_FLASH_NOT_BOOTABLE_MESSAGE,
+  planFlashInstall,
+  type FlashInstallPlan,
+} from "./flash-strategy";
 export { FlashFeature } from "./flash-page";
 export { FlashPanel } from "./flash-panel";
 export {

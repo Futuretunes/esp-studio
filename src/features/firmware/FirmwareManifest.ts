@@ -31,4 +31,10 @@ export type FirmwareManifest = {
    * Filtering is deferred; providers may still advertise compatibility.
    */
   readonly chipFamilies?: readonly string[];
+  /**
+   * Optional explicit package kind from the canonical document.
+   *
+   * When omitted, Flash derives the kind from image labels / ids / filenames.
+   */
+  readonly packageKind?: "complete" | "application-only";
 };

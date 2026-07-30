@@ -42,6 +42,23 @@ export type FlashOptions = FlashOperationOptions & {
   readonly verifyAfterWrite?: boolean;
   /** Hard-reset the chip after a successful write (default `false`). */
   readonly resetAfter?: boolean;
+  /**
+   * After reset, re-sample ESP image magic at written bootloader/application
+   * addresses and fail if the device does not look bootable (default `false`).
+   */
+  readonly verifyBootableAfterReset?: boolean;
+  /**
+   * Optional role tags aligned with {@link FlashOptions.images} indices.
+   *
+   * Used only for bootable verification (partition/otadata formats are skipped).
+   */
+  readonly imageRoles?: readonly (
+    | "bootloader"
+    | "partition-table"
+    | "boot-app0"
+    | "application"
+    | "other"
+  )[];
 };
 
 /**

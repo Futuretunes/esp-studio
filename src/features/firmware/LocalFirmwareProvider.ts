@@ -128,6 +128,7 @@ export class LocalFirmwareProvider implements FirmwareProvider {
         address,
         size: data.byteLength,
         data,
+        required: true,
       },
     ] as const;
 

@@ -28,7 +28,9 @@ import {
   formatFlashInspectionMessage,
   type FlashInspectionReport,
 } from "@/features/flash/flash-inspection";
+import { POST_FLASH_NOT_BOOTABLE_MESSAGE } from "@/features/flash/flash-strategy";
 import { FLASH_SERVICE_OWNER_ID } from "@/features/flash/constants";
+import { firmwareImageRoleUsesEspImageMagic } from "@/features/firmware/firmware-package-kind";
 import {
   FlashBusyError,
   FlashDeviceError,
@@ -348,6 +350,48 @@ export class FlashService {
         await adapter.reset(port);
       }
 
+      if (options.verifyBootableAfterReset === true) {
+        this.#emit(
+          options.onProgress,
+          "verifying",
+          "Checking bootable firmware image…",
+          { percent: 98 },
+        );
+
+        const checkAddresses = uniqueBootableCheckAddresses(
+          options.images,
+          options.imageRoles,
+        );
+
+        if (checkAddresses.length > 0) {
+          const inspection = await adapter.inspectFlash(
+            port,
+            checkAddresses,
+            FLASH_INSPECTION_SAMPLE_LENGTH,
+          );
+
+          for (const region of inspection.regions) {
+            const status = classifyFlashRegionBytes(region.bytes);
+            if (status !== "image") {
+              throw new FlashOperationError(POST_FLASH_NOT_BOOTABLE_MESSAGE);
+            }
+          }
+
+          this.#manager.updateDeviceInfo(options.deviceId, {
+            chipFamily: inspection.chipFamily,
+            metadata: {
+              ...(this.#manager.getDevice(options.deviceId)?.info.metadata ?? {}),
+              ...(inspection.rawName !== undefined
+                ? { espToolChipName: inspection.rawName }
+                : {}),
+              ...(inspection.flashSize !== undefined
+                ? { espToolFlashSize: inspection.flashSize }
+                : {}),
+            },
+          });
+        }
+      }
+
       return {
         success: true,
         stage: "completed",
@@ -537,4 +581,26 @@ export class FlashService {
     }
     return new FlashOperationError("Flash operation failed.");
   }
+}
+
+function uniqueBootableCheckAddresses(
+  images: FlashOptions["images"],
+  imageRoles: FlashOptions["imageRoles"],
+): readonly number[] {
+  const addresses: number[] = [];
+  const seen = new Set<number>();
+
+  for (const [index, image] of images.entries()) {
+    const role = imageRoles?.[index] ?? "application";
+    if (!firmwareImageRoleUsesEspImageMagic(role)) {
+      continue;
+    }
+    if (seen.has(image.address)) {
+      continue;
+    }
+    seen.add(image.address);
+    addresses.push(image.address);
+  }
+
+  return addresses;
 }

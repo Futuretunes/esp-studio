@@ -52,7 +52,18 @@ export type FirmwareManifestImageRef = {
   readonly size?: number;
   /** Optional lowercase hex SHA-256 (verification deferred). */
   readonly sha256?: string;
+  /**
+   * Whether this image must be written for a successful install.
+   *
+   * Defaults to `true` when omitted (backwards compatible).
+   */
+  readonly required?: boolean;
 };
+
+/**
+ * Explicit package layout kind (optional; derived from images when omitted).
+ */
+export type FirmwareManifestPackageKind = "complete" | "application-only";
 
 /**
  * Canonical firmware package document (`schemaVersion: 1`).
@@ -78,6 +89,13 @@ export type FirmwareManifestDocument = {
    * Empty array means any chip. Non-empty entries must be supported ids.
    */
   readonly chipFamilies: readonly FirmwareCompatibleChipFamily[];
+  /**
+   * Optional explicit package kind.
+   *
+   * When omitted, Flash derives complete vs application-only from image
+   * labels / ids / filenames.
+   */
+  readonly packageKind?: FirmwareManifestPackageKind;
   /** Flash image layout (at least one entry after validation). */
   readonly images: readonly FirmwareManifestImageRef[];
 };
@@ -202,6 +220,9 @@ export function toCatalogManifest(
     ...(document.chipFamilies.length > 0
       ? { chipFamilies: document.chipFamilies }
       : {}),
+    ...(document.packageKind !== undefined
+      ? { packageKind: document.packageKind }
+      : {}),
   };
 }
 
@@ -221,6 +242,7 @@ export function createLocalFirmwareManifestDocument(options: {
   readonly size: number;
   readonly path?: string;
   readonly chipFamilies?: readonly FirmwareCompatibleChipFamily[];
+  readonly packageKind?: FirmwareManifestPackageKind;
 }): FirmwareManifestDocument {
   return {
     schemaVersion: FIRMWARE_MANIFEST_SCHEMA_VERSION,
@@ -228,12 +250,14 @@ export function createLocalFirmwareManifestDocument(options: {
     title: options.title,
     sourceKind: "local",
     chipFamilies: options.chipFamilies ?? [],
+    packageKind: options.packageKind ?? "application-only",
     images: [
       {
         id: options.imageId,
         label: options.imageLabel,
         address: options.address,
         size: options.size,
+        required: true,
         ...(options.path !== undefined ? { path: options.path } : {}),
       },
     ],

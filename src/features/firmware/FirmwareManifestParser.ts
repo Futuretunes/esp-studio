@@ -10,6 +10,7 @@ import {
   type FirmwareCompatibleChipFamily,
   type FirmwareManifestDocument,
   type FirmwareManifestImageRef,
+  type FirmwareManifestPackageKind,
   type FirmwareManifestParseResult,
   type FirmwareManifestValidationIssue,
 } from "@/features/firmware/FirmwareManifestSchema";
@@ -20,6 +21,11 @@ const SOURCE_KINDS: readonly FirmwareSourceKind[] = [
   "github",
   "esp-web-tools",
   "remote",
+];
+
+const PACKAGE_KINDS: readonly FirmwareManifestPackageKind[] = [
+  "complete",
+  "application-only",
 ];
 
 /**
@@ -107,6 +113,7 @@ function coerceDocument(
   const description = readOptionalString(value, "description", "/description", issues);
   const version = readOptionalString(value, "version", "/version", issues);
   const providerId = readOptionalString(value, "providerId", "/providerId", issues);
+  const packageKind = readPackageKind(value.packageKind, issues);
 
   if (
     id === undefined ||
@@ -132,6 +139,7 @@ function coerceDocument(
     ...(description !== undefined ? { description } : {}),
     ...(version !== undefined ? { version } : {}),
     ...(providerId !== undefined ? { providerId } : {}),
+    ...(packageKind !== undefined ? { packageKind } : {}),
   };
 }
 
@@ -231,6 +239,19 @@ function readImageRef(
     }
   }
 
+  let required: boolean | undefined;
+  if (value.required !== undefined) {
+    if (typeof value.required !== "boolean") {
+      issues.push({
+        code: "invalid-type",
+        path: `${base}/required`,
+        message: "Image required must be a boolean when provided.",
+      });
+    } else {
+      required = value.required;
+    }
+  }
+
   if (id === undefined || label === undefined || address === undefined) {
     return undefined;
   }
@@ -242,6 +263,7 @@ function readImageRef(
     ...(path !== undefined ? { path } : {}),
     ...(size !== undefined ? { size } : {}),
     ...(sha256 !== undefined ? { sha256 } : {}),
+    ...(required !== undefined ? { required } : {}),
   };
 }
 
@@ -317,8 +339,32 @@ function readSourceKind(
   return value;
 }
 
+function readPackageKind(
+  value: unknown,
+  issues: FirmwareManifestValidationIssue[],
+): FirmwareManifestPackageKind | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value !== "string" || !isPackageKind(value)) {
+    issues.push({
+      code: "invalid-type",
+      path: "/packageKind",
+      message: 'Field packageKind must be "complete" or "application-only" when provided.',
+    });
+    return undefined;
+  }
+
+  return value;
+}
+
 function isSourceKind(value: string): value is FirmwareSourceKind {
   return (SOURCE_KINDS as readonly string[]).includes(value);
+}
+
+function isPackageKind(value: string): value is FirmwareManifestPackageKind {
+  return (PACKAGE_KINDS as readonly string[]).includes(value);
 }
 
 function readRequiredString(

@@ -368,11 +368,15 @@ export class GitHubFirmwareProvider implements FirmwareProvider {
         address: DEFAULT_APP_FLASH_ADDRESS,
         size: data.byteLength,
         data,
+        required: true,
       },
     ];
 
     return {
-      manifest: cached.entry.manifest,
+      manifest: {
+        ...cached.entry.manifest,
+        packageKind: "application-only",
+      },
       images,
     };
   }
@@ -424,6 +428,7 @@ export class GitHubFirmwareProvider implements FirmwareProvider {
         address: ref.address,
         size: data.byteLength,
         data,
+        ...(ref.required !== undefined ? { required: ref.required } : {}),
       });
     }
 
@@ -465,6 +470,7 @@ function buildGeneratedPackages(
       version: release.tagName,
       providerId,
       sourceKind: "github",
+      packageKind: "application-only",
     };
 
     const entry: FirmwareCatalogEntry = {

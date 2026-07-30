@@ -28,6 +28,7 @@ import { formatFirmwareSize } from "@/features/flash/format-firmware-size";
 import type { FlashProgress } from "@/features/flash/FlashProgress";
 import type { FlashResult } from "@/features/flash/FlashResult";
 import type { FlashInspectionReport } from "@/features/flash/flash-inspection";
+import type { FlashInstallPlan } from "@/features/flash/flash-strategy";
 import {
   catalogSelectionKey,
   type FlashFirmwareSource,
@@ -37,10 +38,20 @@ import type { BuiltInCatalogEntry } from "@/features/firmware/catalog";
 import type { FirmwareCatalogEntry } from "@/features/firmware/FirmwareProvider";
 import type { FirmwareImage } from "@/features/firmware/FirmwareImage";
 import type { FirmwareResolvedPackage } from "@/features/firmware/FirmwareProvider";
+import {
+  formatFirmwareImageRoleLabel,
+  formatFirmwarePackageKind,
+  type FirmwarePackageSummary,
+} from "@/features/firmware/firmware-package-kind";
 import type { GitHubReleaseSummary } from "@/features/firmware/providers/github";
 import { formatChipLabel } from "@/features/identification/format-chip-label";
 import { cn } from "@/lib/utils";
 import { useDeviceStore, type DeviceSnapshot } from "@/store";
+
+type PendingOverwriteState = {
+  readonly report: FlashInspectionReport;
+  readonly plan: Extract<FlashInstallPlan, { action: "confirm" }>;
+};
 
 type FlashPanelProps = {
   activeDevice: DeviceSnapshot | null;
@@ -58,11 +69,12 @@ type FlashPanelProps = {
   selectionKey: string;
   resolved: FirmwareResolvedPackage | null;
   primaryImage: FirmwareImage | null;
+  packageSummary: FirmwarePackageSummary | null;
   isFlashing: boolean;
   progress: FlashProgress | null;
   result: FlashResult | null;
   inspectionNotice: string | null;
-  pendingOverwrite: FlashInspectionReport | null;
+  pendingOverwrite: PendingOverwriteState | null;
   errorKind: FlashUiErrorKind;
   errorMessage: string | null;
   githubReleasesHref: string | null;
@@ -115,9 +127,12 @@ function stageLabel(stage: FlashProgress["stage"]): string {
 }
 
 function overwriteDialogTitle(
-  outcome: FlashInspectionReport["outcome"],
+  pending: PendingOverwriteState,
 ): string {
-  switch (outcome) {
+  if (pending.plan.code === "app-only-preserve") {
+    return "Application-only firmware";
+  }
+  switch (pending.report.outcome) {
     case "existing":
       return "Existing firmware detected";
     case "unknown":
@@ -178,6 +193,7 @@ export function FlashPanel({
   selectionKey,
   resolved,
   primaryImage,
+  packageSummary,
   isFlashing,
   progress,
   result,
@@ -189,7 +205,7 @@ export function FlashPanel({
   chipCompatibilityWarning,
   firmwareProjectLabel,
   firmwareVersionLabel,
-  flashAddress,
+  flashAddress: _flashAddress,
   fileInputRef,
   onFirmwareSourceChange,
   onRepositorySlugChange,
@@ -417,15 +433,41 @@ export function FlashPanel({
         </Alert>
       ) : null}
 
+      {errorKind === "blocked" ? (
+        <Alert variant="warning">
+          <AlertTitle>Cannot install on blank device</AlertTitle>
+          <AlertDescription className="space-y-3">
+            <p className="whitespace-pre-line">
+              {errorMessage ??
+                "This firmware only contains the application and cannot boot on an empty ESP."}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  onFirmwareSourceChange("builtin");
+                }}
+              >
+                Choose complete package
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       {errorKind === "failed" || errorKind === "no-device" ? (
         <Alert variant="destructive">
           <AlertTitle>
-            {errorMessage?.toLowerCase().includes("verif")
-              ? "Verification failed"
-              : "Install failed"}
+            {errorMessage?.toLowerCase().includes("not bootable")
+              ? "Firmware not bootable"
+              : errorMessage?.toLowerCase().includes("verif")
+                ? "Verification failed"
+                : "Install failed"}
           </AlertTitle>
           <AlertDescription className="space-y-3">
-            <p>
+            <p className="whitespace-pre-line">
               {errorMessage ??
                 "The firmware could not be installed. Check the cable and try again."}
             </p>
@@ -466,51 +508,84 @@ export function FlashPanel({
 
       {pendingOverwrite ? (
         <Alert variant="warning">
-          <AlertTitle>
-            {overwriteDialogTitle(pendingOverwrite.outcome)}
-          </AlertTitle>
+          <AlertTitle>{overwriteDialogTitle(pendingOverwrite)}</AlertTitle>
           <AlertDescription className="space-y-3">
-            <p className="whitespace-pre-line">{pendingOverwrite.message}</p>
-            <dl className="grid gap-2 sm:grid-cols-2">
-              {pendingOverwrite.rawChipName || pendingOverwrite.chipFamily ? (
-                <div>
-                  <dt className="text-muted-foreground text-xs">Chip</dt>
-                  <dd className="text-sm font-medium">
-                    {pendingOverwrite.rawChipName ??
-                      (pendingOverwrite.chipFamily
-                        ? formatChipLabel(pendingOverwrite.chipFamily)
-                        : null)}
-                  </dd>
-                </div>
-              ) : null}
-              {pendingOverwrite.flashSize ? (
-                <div>
-                  <dt className="text-muted-foreground text-xs">Flash size</dt>
-                  <dd className="text-sm font-medium">
-                    {pendingOverwrite.flashSize}
-                  </dd>
-                </div>
-              ) : null}
-              {firmwareProjectLabel ? (
-                <div>
-                  <dt className="text-muted-foreground text-xs">
-                    Installing project
-                  </dt>
-                  <dd className="text-sm font-medium">{firmwareProjectLabel}</dd>
-                </div>
-              ) : null}
-              {firmwareVersionLabel ? (
-                <div>
-                  <dt className="text-muted-foreground text-xs">
-                    Installing version
-                  </dt>
-                  <dd className="text-sm font-medium">{firmwareVersionLabel}</dd>
-                </div>
-              ) : null}
-            </dl>
-            <p>
-              Installing new firmware will overwrite the existing installation.
-            </p>
+            <p className="whitespace-pre-line">{pendingOverwrite.plan.message}</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Current firmware</p>
+                <dl className="grid gap-2">
+                  {pendingOverwrite.report.rawChipName ||
+                  pendingOverwrite.report.chipFamily ? (
+                    <div>
+                      <dt className="text-muted-foreground text-xs">Chip</dt>
+                      <dd className="text-sm font-medium">
+                        {pendingOverwrite.report.rawChipName ??
+                          (pendingOverwrite.report.chipFamily
+                            ? formatChipLabel(pendingOverwrite.report.chipFamily)
+                            : null)}
+                      </dd>
+                    </div>
+                  ) : null}
+                  {pendingOverwrite.report.flashSize ? (
+                    <div>
+                      <dt className="text-muted-foreground text-xs">
+                        Flash size
+                      </dt>
+                      <dd className="text-sm font-medium">
+                        {pendingOverwrite.report.flashSize}
+                      </dd>
+                    </div>
+                  ) : null}
+                  <div>
+                    <dt className="text-muted-foreground text-xs">
+                      Device flash
+                    </dt>
+                    <dd className="text-sm font-medium">
+                      {pendingOverwrite.report.outcome === "existing"
+                        ? "Existing firmware detected"
+                        : pendingOverwrite.report.outcome === "blank"
+                          ? "Blank"
+                          : "Unknown / unverified"}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">New firmware</p>
+                <dl className="grid gap-2">
+                  <div>
+                    <dt className="text-muted-foreground text-xs">
+                      Firmware type
+                    </dt>
+                    <dd className="text-sm font-medium">
+                      {formatFirmwarePackageKind(pendingOverwrite.plan.packageKind)}
+                    </dd>
+                  </div>
+                  {firmwareProjectLabel ? (
+                    <div>
+                      <dt className="text-muted-foreground text-xs">Project</dt>
+                      <dd className="text-sm font-medium">
+                        {firmwareProjectLabel}
+                      </dd>
+                    </div>
+                  ) : null}
+                  {firmwareVersionLabel ? (
+                    <div>
+                      <dt className="text-muted-foreground text-xs">Version</dt>
+                      <dd className="text-sm font-medium">
+                        {firmwareVersionLabel}
+                      </dd>
+                    </div>
+                  ) : null}
+                </dl>
+              </div>
+            </div>
+            {pendingOverwrite.plan.preserveBootloader ? null : (
+              <p>
+                Installing new firmware will overwrite the existing installation.
+              </p>
+            )}
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
@@ -594,24 +669,66 @@ export function FlashPanel({
               </dd>
             </div>
             <div>
+              <dt className="text-muted-foreground text-xs">Firmware type</dt>
+              <dd className="text-sm font-medium">
+                {packageSummary
+                  ? formatFirmwarePackageKind(packageSummary.kind)
+                  : "—"}
+              </dd>
+            </div>
+            <div>
               <dt className="text-muted-foreground text-xs">Firmware size</dt>
               <dd className="text-sm font-medium">
-                {primaryImage
-                  ? formatFirmwareSize(primaryImage.size)
+                {resolved && resolved.images.length > 0
+                  ? formatFirmwareSize(
+                      resolved.images.reduce(
+                        (total, image) => total + image.size,
+                        0,
+                      ),
+                    )
                   : isResolving || isLoadingGithub
                     ? "Loading…"
                     : "—"}
               </dd>
             </div>
-            <div>
-              <dt className="text-muted-foreground text-xs">Flash address</dt>
-              <dd className="font-mono text-sm">
-                {primaryImage
-                  ? formatFlashAddress(primaryImage.address)
-                  : formatFlashAddress(flashAddress)}
-              </dd>
-            </div>
           </dl>
+          {packageSummary ? (
+            <div className="mt-4 space-y-2">
+              <p className="text-muted-foreground text-xs">Images to write</p>
+              <ul className="space-y-1 text-sm">
+                {packageSummary.images
+                  .filter((image) => image.required)
+                  .map((image) => {
+                    const label =
+                      packageSummary.kind === "application-only" &&
+                      packageSummary.images.filter((entry) => entry.required)
+                        .length === 1
+                        ? "Application only"
+                        : formatFirmwareImageRoleLabel(
+                            image.role,
+                            image.label,
+                          );
+                    return (
+                      <li
+                        key={image.id}
+                        className="flex flex-wrap items-center gap-2"
+                      >
+                        <span aria-hidden>✓</span>
+                        <span>{label}</span>
+                        <span className="text-muted-foreground font-mono text-xs">
+                          {formatFlashAddress(image.address)}
+                        </span>
+                        {image.size !== undefined ? (
+                          <span className="text-muted-foreground text-xs">
+                            {formatFirmwareSize(image.size)}
+                          </span>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+              </ul>
+            </div>
+          ) : null}
         </CardContent>
         <CardFooter className="justify-end gap-2">
           {resolved ? (

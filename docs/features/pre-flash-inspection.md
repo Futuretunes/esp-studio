@@ -130,12 +130,14 @@ type FlashInspectionReport = {
 
 ## When confirmation is shown
 
-| Outcome | UI | Confirmation? |
-| ------- | -- | ------------- |
-| `blank` | “This device appears to be empty.” | **No** — continue |
-| `existing` | Existing firmware detected + known chip/incoming fields | **Yes** — Cancel default |
-| `unknown` | Could not identify; may already contain software | **Yes** — Cancel default |
-| `failed` | Inspection failed; may already contain software | **Yes** — Cancel default |
+| Device outcome | Package kind | UI | Confirmation? |
+| -------------- | ------------ | -- | ------------- |
+| `blank` | `application-only` | Stop — cannot boot on empty ESP | N/A (blocked) |
+| `blank` | `complete` | “This device appears to be empty.” | **No** — continue |
+| `existing` / `unknown` / `failed` | `application-only` | App-only preserve message | **Yes** — Cancel default |
+| `existing` / `unknown` / `failed` | `complete` | Overwrite warning | **Yes** — Cancel default |
+
+Package kind comes from manifest `packageKind` or image role labels — see [Flash Pipeline Robustness](./flash-pipeline-robustness.md).
 
 ## Acceptance Criteria
 

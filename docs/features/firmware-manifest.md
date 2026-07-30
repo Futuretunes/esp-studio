@@ -43,6 +43,7 @@ Top-level object:
 | `sourceKind` | `"local" \| "github" \| "esp-web-tools" \| "remote"` | yes | Origin kind |
 | `providerId` | string | no | Filled by provider when known |
 | `chipFamilies` | string[] | no | Empty/omitted = any chip; else ESP Studio chip ids |
+| `packageKind` | `"complete" \| "application-only"` | no | Explicit package layout; when omitted Flash derives from image labels/ids/paths |
 | `images` | object[] | yes | At least one image |
 
 Each `images[]` entry:
@@ -51,10 +52,11 @@ Each `images[]` entry:
 | ----- | ---- | -------- | ----- |
 | `id` | string | yes | Unique within the document |
 | `label` | string | yes | Human label (`application`, `bootloader`, …) |
-| `address` | number \| hex string | yes | Absolute flash offset (`4096` or `"0x1000"`) |
-| `path` | string | no | Relative path for future bundles / remotes |
+| `address` | number \| hex string | yes | Absolute flash offset (`4096` or `"0x1000"`) — **never invent chip defaults at flash time** |
+| `path` | string | no | Relative path for bundles / remotes |
 | `size` | number | no | Expected byte length when known |
 | `sha256` | string | no | Lowercase hex digest (future verify) |
+| `required` | boolean | no | Defaults to `true`; optional images may be skipped |
 
 ### Complete example — single app image (local)
 
@@ -67,6 +69,7 @@ Each `images[]` entry:
   "version": "1.0.0",
   "sourceKind": "local",
   "providerId": "local",
+  "packageKind": "application-only",
   "chipFamilies": ["esp32-s3"],
   "images": [
     {
@@ -74,13 +77,14 @@ Each `images[]` entry:
       "label": "application",
       "address": "0x10000",
       "path": "firmware.bin",
-      "size": 524288
+      "size": 524288,
+      "required": true
     }
   ]
 }
 ```
 
-### Complete example — multi-image layout (future provider)
+### Complete example — multi-image layout
 
 ```json
 {
@@ -89,6 +93,7 @@ Each `images[]` entry:
   "title": "Factory Bundle",
   "version": "2.1.0",
   "sourceKind": "esp-web-tools",
+  "packageKind": "complete",
   "chipFamilies": ["esp32", "esp32-s2", "esp32-s3"],
   "images": [
     {
@@ -96,14 +101,23 @@ Each `images[]` entry:
       "label": "bootloader",
       "address": "0x0",
       "path": "bootloader.bin",
-      "size": 28672
+      "size": 28672,
+      "required": true
     },
     {
       "id": "partition-table",
       "label": "partition-table",
       "address": "0x8000",
       "path": "partition-table.bin",
-      "size": 3072
+      "size": 3072,
+      "required": true
+    },
+    {
+      "id": "boot_app0",
+      "label": "boot_app0",
+      "address": "0xe000",
+      "path": "boot_app0.bin",
+      "required": true
     },
     {
       "id": "app",
@@ -111,11 +125,23 @@ Each `images[]` entry:
       "address": "0x10000",
       "path": "app.bin",
       "size": 1048576,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "required": true
     }
   ]
 }
 ```
+
+## Package kind detection
+
+Flash classifies packages without inventing product identity:
+
+1. Prefer explicit `packageKind` on the document.
+2. Otherwise derive from image `label` / `id` / filename tokens (`bootloader`, `partition-table`, `boot_app0`, `application`).
+3. Local single `.bin` imports and GitHub generated (no manifest) assets are **application-only**.
+4. A package that includes a bootloader image plus application (or other layout parts) is **complete**.
+
+See also [Pre-Flash Firmware Inspection](./pre-flash-inspection.md) for blank-device gating.
 
 ## Versioning
 
