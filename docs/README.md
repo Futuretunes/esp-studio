@@ -19,6 +19,7 @@ Internal product and architecture documentation.
 | Flash Service (MVP)       | [features/flash-service.md](./features/flash-service.md)                 |
 | Flash UI (MVP)            | [features/flash-ui.md](./features/flash-ui.md)                           |
 | Firmware Catalog (MVP)    | [features/firmware-catalog.md](./features/firmware-catalog.md)           |
+| Firmware Manifest         | [features/firmware-manifest.md](./features/firmware-manifest.md)         |
 | Feature template          | [_templates/feature.md](./_templates/feature.md)                         |
 
 ## Process

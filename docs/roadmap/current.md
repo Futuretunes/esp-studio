@@ -1,30 +1,29 @@
 # Current Focus
 
-**Active milestone:** Firmware Catalog (MVP)
+**Active milestone:** Firmware Manifest
 
 ## Why this next
 
-Flash UI picks a local `.bin` directly. A provider-based catalog is required before GitHub / ESP Web Tools / one-click install can share one firmware source.
+The catalog needs a versioned, validatable JSON contract between providers and FlashService before GitHub / ESP Web Tools adapters can share one format.
 
 ## In scope
 
-1. `docs/features/firmware-catalog.md`
-2. `FirmwareCatalog` + `FirmwareProvider` + manifest/image types
-3. `LocalFirmwareProvider` only
-4. Flash page selects firmware via catalog (“Local file…” → picker)
-5. Continue flashing through existing `FlashService`
+1. `docs/features/firmware-manifest.md`
+2. Canonical `schemaVersion: 1` document types
+3. Parser + validator with typed issues (required fields, duplicate addresses, chip families, image existence)
+4. Catalog summary projection helper
 
 ## Out of scope
 
-One-click install, GitHub Releases, downloads, ESP Web Tools manifests, OTA, multi-partition editing
+GitHub integration, downloads, remote manifest fetching, one-click install, SHA verify UI
 
 ## Next up
 
-**GitHub Firmware Provider** — list release `.bin` assets; download on resolve (still no full one-click product polish).
+**GitHub Firmware Provider** — emit/consume `FirmwareManifestDocument`; download assets on resolve.
 
 ## Related documents
 
+- [Firmware Manifest](../features/firmware-manifest.md)
 - [Firmware Catalog](../features/firmware-catalog.md)
-- [Flash UI](../features/flash-ui.md)
 - [Flash Service](../features/flash-service.md)
 - [Backlog](./backlog.md)

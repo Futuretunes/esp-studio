@@ -10,6 +10,32 @@ export type {
   FirmwareManifest,
   FirmwareSourceKind,
 } from "./FirmwareManifest";
+export {
+  parseFirmwareManifestJson,
+  parseFirmwareManifestValue,
+} from "./FirmwareManifestParser";
+export {
+  FIRMWARE_COMPATIBLE_CHIP_FAMILIES,
+  FIRMWARE_MANIFEST_SCHEMA_VERSION,
+  createLocalFirmwareManifestDocument,
+  isFirmwareCompatibleChipFamily,
+  parseFirmwareAddress,
+  toCatalogManifest,
+  type FirmwareCompatibleChipFamily,
+  type FirmwareManifestDocument,
+  type FirmwareManifestImageRef,
+  type FirmwareManifestIssueCode,
+  type FirmwareManifestParseResult,
+  type FirmwareManifestValidationFailure,
+  type FirmwareManifestValidationIssue,
+  type FirmwareManifestValidationResult,
+  type FirmwareManifestValidationSuccess,
+} from "./FirmwareManifestSchema";
+export {
+  validateFirmwareManifestDocument,
+  type FirmwareManifestDocumentInput,
+  type FirmwareManifestValidateOptions,
+} from "./FirmwareManifestValidator";
 export type {
   FirmwareCatalogAction,
   FirmwareCatalogEntry,
