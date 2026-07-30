@@ -273,6 +273,18 @@ export function DeviceDiscoveryPanel({
                 ))}
               </div>
             </div>
+
+            <Alert variant="info">
+              <AlertTitle>Serial port permissions</AlertTitle>
+              <AlertDescription className="text-xs">
+                Disconnect closes the port. Chrome still remembers grants for
+                this site and may list the device again in the port chooser.
+                Use <span className="font-medium">Forget port</span> to revoke
+                this origin’s grant via{" "}
+                <code className="font-mono">SerialPort.forget()</code>. ESP
+                Studio cannot clear Chrome’s global device list.
+              </AlertDescription>
+            </Alert>
           </CardContent>
         </Card>
       ) : null}

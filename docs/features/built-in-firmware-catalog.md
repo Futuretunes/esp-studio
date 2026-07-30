@@ -50,7 +50,7 @@ sequenceDiagram
   UI->>Builtin: loadBuiltInCatalog()
   Builtin-->>UI: BuiltInCatalogEntry[]
   UI->>UI: user selects card (e.g. WLED)
-  UI->>GH: configureRepository("Aircoookie/WLED")
+  UI->>GH: configureRepository("wled-dev/WLED")
   GH-->>UI: release summary
   UI->>Cat: listAll() / resolve(...)
   Cat->>GH: list() / resolve(manifestId)
@@ -90,7 +90,7 @@ MVP stores `category` on each entry but does **not** ship a categories filter UI
 
 | Entry | Repository |
 | ----- | ---------- |
-| WLED | `Aircoookie/WLED` |
+| WLED | `wled-dev/WLED` |
 | ESPHome | `esphome/esphome` |
 | Tasmota | `arendst/Tasmota` |
 | OpenMQTTGateway | `1technophile/OpenMQTTGateway` |

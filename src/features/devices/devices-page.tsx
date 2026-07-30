@@ -11,6 +11,7 @@ import { useChipIdentification } from "@/features/identification/use-chip-identi
 import {
   isWebSerialSupported,
   WEB_SERIAL_PROVIDER_ID,
+  WebSerialProvider,
 } from "@/providers/web-serial";
 import { useDeviceStore } from "@/store";
 
@@ -119,6 +120,43 @@ export function DevicesFeature(): JSX.Element {
     setError,
   ]);
 
+  const handleForgetPort = useCallback(async () => {
+    if (!activeDevice) {
+      return;
+    }
+
+    clearError();
+    setDisconnecting(true);
+    const deviceId = activeDevice.id;
+
+    try {
+      try {
+        await manager.disconnect(deviceId);
+      } catch {
+        // Port may already be closed; still attempt forget.
+      }
+      setActiveDevice(null);
+
+      const provider = manager.getProvider(WEB_SERIAL_PROVIDER_ID);
+      if (provider instanceof WebSerialProvider) {
+        await provider.forgetPort(deviceId);
+      }
+    } catch (error) {
+      const detail =
+        error instanceof Error ? error.message : "Unknown forget-port error.";
+      setError("disconnect", detail);
+    } finally {
+      setDisconnecting(false);
+    }
+  }, [
+    activeDevice,
+    clearError,
+    manager,
+    setActiveDevice,
+    setDisconnecting,
+    setError,
+  ]);
+
   const connectDisabled =
     webSerialSupported === false ||
     isConnecting ||
@@ -132,16 +170,28 @@ export function DevicesFeature(): JSX.Element {
         description="Discover and connect ESP8266 or ESP32 boards from the browser using Web Serial."
         actions={
           activeDevice ? (
-            <Button
-              type="button"
-              variant="outline"
-              disabled={isDisconnecting || isConnecting || isIdentifying}
-              onClick={() => {
-                void handleDisconnect();
-              }}
-            >
-              {isDisconnecting ? "Disconnecting…" : "Disconnect"}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isDisconnecting || isConnecting || isIdentifying}
+                onClick={() => {
+                  void handleDisconnect();
+                }}
+              >
+                {isDisconnecting ? "Disconnecting…" : "Disconnect"}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={isDisconnecting || isConnecting || isIdentifying}
+                onClick={() => {
+                  void handleForgetPort();
+                }}
+              >
+                Forget port
+              </Button>
+            </div>
           ) : (
             <Button
               type="button"

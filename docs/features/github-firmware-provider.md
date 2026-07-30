@@ -134,7 +134,7 @@ unless assets are served with CORS (same constraint as ESP Web Tools).
 | Element | Behavior |
 | ------- | -------- |
 | Source | `Local File` \| `GitHub Repository` |
-| Repo field | `owner/repository` (example `Aircoookie/WLED`) |
+| Repo field | `owner/repository` (example `wled-dev/WLED`) |
 | Persistence | `localStorage` key for last repository slug |
 | After load | Repository, latest release tag/name, published date, firmware options |
 | Flash | Unchanged `FlashService` path |
