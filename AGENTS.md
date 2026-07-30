@@ -14,7 +14,7 @@ ESP Studio is a browser-only SPA (React + Vite + TypeScript). There is **no back
 
 ### Standard commands
 
-See `README.md` / `package.json` scripts for `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm format`, and `pnpm preview`.
+See `README.md` / `package.json` scripts for `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm format`, and `pnpm preview`. Deployment: `docs/features/deployment.md` (GitHub Actions CI + FTP deploy of `dist/`). `pnpm build` / `pnpm dev` run `scripts/generate-build-info.mjs` to write `public/build.json`.
 
 ### Gotchas
 

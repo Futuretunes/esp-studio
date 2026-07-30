@@ -28,6 +28,7 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 | 14       | OTA                | ⬜     | Network update flows                                |
 | 15       | IDE                | ⬜     | Monaco-based editing shell                          |
 | 16       | Release v1.0       | ⬜     | Documented APIs, tests, at least one transport      |
+| 16a      | Continuous Deploy  | 🟡     | CI + FTP deploy of dist/ to shared hosting          |
 
 ## Detail by milestone
 
@@ -151,6 +152,12 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 ### IDE ⬜
 
 - Monaco integration, project files, optional language tools.
+
+### Continuous Deploy 🟡
+
+- GitHub Actions CI (lint/typecheck/test/build) and FTP deploy of `dist/`.
+- `build.json` + Settings About display.
+- Secrets: FTP_HOST / FTP_PORT / FTP_USER / FTP_PASSWORD / FTP_REMOTE_PATH.
 
 ### Release v1.0 ⬜
 

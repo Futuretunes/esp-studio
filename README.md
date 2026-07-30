@@ -26,12 +26,14 @@ Open [http://localhost:5173](http://localhost:5173).
 | Command          | Description                             |
 | ---------------- | --------------------------------------- |
 | `pnpm dev`       | Start the Vite development server       |
-| `pnpm build`     | Typecheck and build for production      |
+| `pnpm build`     | Generate build.json, typecheck, and build |
 | `pnpm lint`      | Run ESLint                              |
 | `pnpm format`    | Format with Prettier                    |
 | `pnpm typecheck` | Run TypeScript project references check |
 | `pnpm test`      | Run Vitest smoke tests                  |
 | `pnpm preview`   | Preview the production build            |
+
+CI and FTP deploy: [`docs/features/deployment.md`](./docs/features/deployment.md).
 
 ## Architecture
 

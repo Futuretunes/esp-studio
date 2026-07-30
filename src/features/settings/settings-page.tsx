@@ -3,6 +3,7 @@ import type { JSX } from "react";
 import { FeaturePlaceholder } from "@/components/feature-placeholder";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { AboutBuildInfo } from "@/features/settings/about-build-info";
 import { useUiStore } from "@/store";
 
 export function SettingsFeature(): JSX.Element {
@@ -59,6 +60,7 @@ export function SettingsFeature(): JSX.Element {
             </Button>
           </div>
         </FeaturePlaceholder>
+        <AboutBuildInfo />
         <FeaturePlaceholder
           title="Advanced preferences"
           description="Serial defaults, flash profiles, and developer options will be configurable here."
