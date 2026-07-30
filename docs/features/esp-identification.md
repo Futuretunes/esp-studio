@@ -101,8 +101,8 @@ sequenceDiagram
 src/adapters/esptool/
   types.ts
   map-chip-name.ts
-  DeviceOwnedTransport.ts   # Transport subclass: no port close
-  EspToolChipIdentifier.ts  # detectChip wrapper
+  device-owned-transport.ts   # Transport subclass: no port close
+  esp-tool-chip-identifier.ts # detectChip wrapper
   index.ts
 
 src/features/identification/
@@ -121,11 +121,11 @@ src/features/identification/
 - [x] Device chip family is updated and Devices UI shows `Chip: ESP32-S3` (or Unknown).
 - [x] Designed to support ESP8266, ESP32, S2, S3, C2, C3, C6, H2.
 - [x] No flash write/erase/verify, filesystem, OTA, or firmware library UI.
-- [ ] Strict TypeScript, no `any`, JSDoc; `pnpm lint` / `typecheck` / `build` pass.
+- [x] Strict TypeScript, no `any`, JSDoc; `pnpm lint` / `typecheck` / `build` pass.
 
 ## TODO Checklist
 
 - [x] Documentation reviewed
 - [x] Implementation complete
-- [ ] `pnpm lint` / `pnpm typecheck` / `pnpm build` pass
+- [x] `pnpm lint` / `pnpm typecheck` / `pnpm build` pass
 - [x] Roadmap updated
