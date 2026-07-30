@@ -100,13 +100,13 @@ UI imports **`FlashService` only** — never `esptool-js`.
 
 ## Acceptance Criteria
 
-- [ ] Feature doc exists.
-- [ ] Flash page shows device info, chip type, file picker, size, Flash button, progress, result.
-- [ ] Supports one local `.bin` via `FlashService`.
-- [ ] Live `FlashProgress`; controls disabled while flashing.
-- [ ] Friendly errors for no device, unsupported browser, no file, busy, flash/verify failure.
-- [ ] No firmware library, OTA, multi-partition, bootloader, or settings UI.
-- [ ] Strict TypeScript; `pnpm lint` / `typecheck` / `build` pass.
+- [x] Feature doc exists.
+- [x] Flash page shows device info, chip type, file picker, size, Flash button, progress, result.
+- [x] Supports one local `.bin` via `FlashService`.
+- [x] Live `FlashProgress`; controls disabled while flashing.
+- [x] Friendly errors for no device, unsupported browser, no file, busy, flash/verify failure.
+- [x] No firmware library, OTA, multi-partition, bootloader, or settings UI.
+- [x] Strict TypeScript; `pnpm lint` / `typecheck` / `build` pass.
 
 ## Future Improvements
 
@@ -119,6 +119,6 @@ UI imports **`FlashService` only** — never `esptool-js`.
 ## TODO Checklist
 
 - [x] Documentation reviewed
-- [ ] Implementation complete
-- [ ] `pnpm lint` / `pnpm typecheck` / `pnpm build` pass
-- [ ] Roadmap updated
+- [x] Implementation complete
+- [x] `pnpm lint` / `pnpm typecheck` / `pnpm build` pass
+- [x] Roadmap updated
