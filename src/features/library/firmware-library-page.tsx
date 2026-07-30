@@ -101,13 +101,16 @@ export function FirmwareLibraryPage(): JSX.Element {
     <div>
       <PageHeader
         title="Firmware Library"
-        description="Browse popular ESP firmware and install with the existing one-click Flash flow."
+        description="Browse popular ESP firmware and open Install Firmware with one click."
       />
 
       <div className="space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative min-w-0 flex-1">
-            <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+            <Search
+              className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
+              aria-hidden
+            />
             <Input
               value={query}
               onChange={(event) => {
@@ -231,7 +234,7 @@ export function FirmwareLibraryPage(): JSX.Element {
                   <div className="bg-muted text-muted-foreground mb-2 flex size-10 items-center justify-center rounded-lg">
                     <Construction className="size-5" aria-hidden />
                   </div>
-                  <CardTitle className="text-base">Coming soon</CardTitle>
+                  <CardTitle className="text-base">Not in this beta</CardTitle>
                   <CardDescription>
                     After a successful install, project and version history will
                     appear here. Use Recently used for browser-local shortcuts

@@ -1,25 +1,25 @@
 # Current Focus
 
-**Active milestone:** Firmware Library
+**Active milestone:** v0.9.0-beta.1 Release Candidate
 
 ## Why this next
 
-Firmware Platform and Filesystem Platform are complete. Next is the product browse experience: discover firmware and launch the existing one-click install flow—no new abstractions.
+Architecture, CD, and diagnostics are complete. This milestone is quality-only: honest beta copy, a11y polish, release notes, and a versioned RC tag — no new product features.
 
 ## In scope
 
-1. `docs/features/firmware-library.md`
-2. `src/features/library/` browse UI (search, categories, cards)
-3. Deep-link Install → `/flash?project=<id>` + `selectBuiltInEntry`
-4. Recently used + install-history placeholder
+1. `docs/releases/v0.9.0-beta.1.md`
+2. Copy / a11y / dead-UI honesty (OTA, Settings)
+3. Version bump + quality gates
+4. Route smoke verification
 
 ## Out of scope
 
-Remote search, auth, ratings, reviews, downloads telemetry, OTA, new providers
+OTA implementation, IDE/Monaco, plugins, identify enrichment, architectural refactors
 
 ## Related documents
 
-- [Firmware Library](../features/firmware-library.md)
-- [One-click Install](../features/one-click-install.md)
-- [Built-in Firmware Catalog](../features/built-in-firmware-catalog.md)
+- [Release notes v0.9.0-beta.1](../releases/v0.9.0-beta.1.md)
+- [Hardware compatibility](../hardware-compatibility.md)
+- [Device Diagnostics](../features/device-diagnostics.md)
 - [Backlog](./backlog.md)

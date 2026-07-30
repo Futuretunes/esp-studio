@@ -7,12 +7,15 @@ type FeaturePlaceholderProps = {
   title: string;
   description: string;
   children?: ReactNode;
+  /** When false, hides the beta availability note. Defaults to true. */
+  showBetaNote?: boolean;
 };
 
 export function FeaturePlaceholder({
   title,
   description,
   children,
+  showBetaNote = true,
 }: FeaturePlaceholderProps): JSX.Element {
   return (
     <Card className="border-dashed">
@@ -25,10 +28,12 @@ export function FeaturePlaceholder({
       <CardContent className="space-y-3">
         <p className="text-muted-foreground text-sm">{description}</p>
         {children}
-        <p className="bg-muted/60 text-muted-foreground rounded-md px-3 py-2 text-xs">
-          This page is scaffolded for a later milestone. Core device, flash,
-          serial, and filesystem tools are available from the sidebar today.
-        </p>
+        {showBetaNote ? (
+          <p className="bg-muted/60 text-muted-foreground rounded-md px-3 py-2 text-xs">
+            Not available in this beta. Device, Flash, Serial, and Filesystem
+            tools are ready from the sidebar.
+          </p>
+        ) : null}
       </CardContent>
     </Card>
   );

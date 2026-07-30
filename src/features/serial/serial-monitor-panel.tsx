@@ -156,7 +156,7 @@ export function SerialMonitorPanel(): JSX.Element {
           <div>
             <CardTitle>Output</CardTitle>
             <CardDescription>
-              Live UTF-8 decode from TransportIo
+              Live text from the serial port
             </CardDescription>
           </div>
           <Button
@@ -193,7 +193,7 @@ export function SerialMonitorPanel(): JSX.Element {
         <CardHeader>
           <CardTitle>Send</CardTitle>
           <CardDescription>
-            Text is encoded with TextEncoder and written as raw bytes.
+            Text is sent as UTF-8 bytes over the serial connection.
           </CardDescription>
         </CardHeader>
         <CardContent>
