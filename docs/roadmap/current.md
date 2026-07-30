@@ -1,26 +1,25 @@
 # Current Focus
 
-**Active milestone:** Transport IO Layer — implementation complete
+**Active milestone:** Communication Session — implementation complete
 
 ## Completed
 
-1. `docs/features/transport-io.md`
-2. Core `TransportIo` (`open` / `close` / `read` / `write` / `flush`, `Uint8Array` only)
-3. `DeviceConnection.io?` additive optional link
-4. `WebSerialTransportIo` + `WebSerialConnection.io`
+1. `docs/features/communication-session.md`
+2. `CommunicationSession` + `CommunicationLock` (+ typed errors)
+3. Exclusive ownership and read/write mutexes over `TransportIo`
+4. Raw `Uint8Array` forwarding only
 
 ## Still out of scope
 
-- Serial Monitor UI / ANSI / logging / line buffering
-- Flash Engine / packet parsers
-- Auto-reconnect
+- Serial Monitor UI / UTF-8 / ANSI / logging
+- Flash Engine / protocol parsing / line buffering
 
 ## Next up
 
-**Serial Monitor** — document first, then build a minimal console that opens `connection.io`, decodes UTF-8 for display only, and writes user input as bytes. Do not put framing/ANSI in the transport layer.
+**Serial Monitor** — document first, then a minimal console that acquires `CommunicationSession` ownership, streams bytes, and decodes UTF-8 only in the UI.
 
 ## Related documents
 
+- [Communication Session feature](../features/communication-session.md)
 - [Transport IO feature](../features/transport-io.md)
-- [Web Serial feature](../features/web-serial.md)
 - [Backlog](./backlog.md)

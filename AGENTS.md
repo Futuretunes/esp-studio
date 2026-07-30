@@ -27,4 +27,4 @@ See `README.md` / `package.json` scripts for `pnpm lint`, `pnpm typecheck`, `pnp
 - Domain contracts live in `src/core/*` (no React, no Web Serial/WebUSB). Device discovery uses `@/core/device`; raw byte streams use `@/core/transport` (`TransportIo`). Concrete transports belong in `src/providers/*` (Web Serial: `@/providers/web-serial`).
 - Register providers at the app composition root (`src/app/device-runtime.ts` + `DeviceManagerProvider`); do not import `src/providers/*` from `src/core/*`.
 - Devices UI talks to `useDeviceManager()` and stores serializable snapshots in Zustand (`useDeviceStore`). Never pass `SerialPort` into React state.
-- Byte IO for future Serial Monitor / Flash must go through `connection.io` (`TransportIo`, `Uint8Array` only) — never through provider internals.
+- Byte IO for future Serial Monitor / Flash must go through `CommunicationSession` over `connection.io` (`TransportIo`, `Uint8Array` only) — never through provider internals. Acquire exclusive ownership before reading or writing.

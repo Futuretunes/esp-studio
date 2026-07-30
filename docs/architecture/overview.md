@@ -40,6 +40,7 @@ ESP Studio is a browser-based development environment for ESP8266 and ESP32 devi
 | ------------------ | ------------------------------------ | ----------------------------------------------- |
 | Device abstraction | `src/core/device`                    | First real core feature; transport-agnostic     |
 | Transport IO       | `src/core/transport`                 | Raw `Uint8Array` streams for any transport      |
+| Communication      | `src/core/communication`             | Exclusive ownership over `TransportIo`          |
 | Web Serial         | `src/providers/web-serial`           | Implements `DeviceProvider` + `TransportIo`     |
 | WebUSB             | `src/providers/web-usb`              | Implements `DeviceProvider`                     |
 | Bluetooth          | `src/providers/bluetooth`            | Future `DeviceProvider`                         |

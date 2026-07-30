@@ -9,3 +9,4 @@
 
 export * from "./device";
 export * from "./transport";
+export * from "./communication";

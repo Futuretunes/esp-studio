@@ -10,14 +10,15 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 | 4        | Web Serial       | ✅     | First real `DeviceProvider` implementation          |
 | 5        | Device Discovery | ✅     | UX + APIs to list/request devices across providers  |
 | 6        | Transport IO     | ✅     | Raw `Uint8Array` stream contract for all transports |
-| 7        | Flash Engine     | ⬜     | Flash orchestration + esptool-js adapter            |
-| 8        | Firmware Plugins | ⬜     | Installer contribution points + first plugins       |
-| 9        | Firmware Library | ⬜     | Catalog, versions, local/remote artifacts           |
-| 10       | Serial Monitor   | ⬜     | Streaming console over `TransportIo`                |
-| 11       | Filesystem       | ⬜     | SPIFFS / LittleFS browser                           |
-| 12       | OTA              | ⬜     | Network update flows                                |
-| 13       | IDE              | ⬜     | Monaco-based editing shell                          |
-| 14       | Release v1.0     | ⬜     | Documented APIs, tests, at least one transport      |
+| 7        | Communication    | ✅     | Single-owner session over `TransportIo`             |
+| 8        | Flash Engine     | ⬜     | Flash orchestration + esptool-js adapter            |
+| 9        | Firmware Plugins | ⬜     | Installer contribution points + first plugins       |
+| 10       | Firmware Library | ⬜     | Catalog, versions, local/remote artifacts           |
+| 11       | Serial Monitor   | ⬜     | Streaming console over `CommunicationSession`       |
+| 12       | Filesystem       | ⬜     | SPIFFS / LittleFS browser                           |
+| 13       | OTA              | ⬜     | Network update flows                                |
+| 14       | IDE              | ⬜     | Monaco-based editing shell                          |
+| 15       | Release v1.0     | ⬜     | Documented APIs, tests, at least one transport      |
 
 ## Detail by milestone
 
@@ -54,6 +55,11 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 - Web Serial implementation via `WebSerialTransportIo` on `DeviceConnection.io`.
 - Binary `Uint8Array` only; no Serial Monitor UI.
 
+### Communication Session ✅
+
+- `CommunicationSession` owns a `TransportIo` with exclusive `CommunicationLock`.
+- Prevents concurrent readers/writers; forwards raw bytes only.
+
 ### Flash Engine ⬜
 
 - Progress events, abort, verification hooks.
@@ -69,7 +75,7 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 
 ### Serial Monitor ⬜
 
-- Consume `TransportIo` for read/write; UTF-8 decode only in the UI layer.
+- Acquire `CommunicationSession` ownership; consume raw bytes; UTF-8 decode only in the UI layer.
 - Baud configuration via capabilities, log buffer, export.
 
 ### Filesystem ⬜
