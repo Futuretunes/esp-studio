@@ -123,14 +123,14 @@ UI disables Upload / Download / Refresh while a transfer is active and shows a p
 
 ## Acceptance Criteria
 
-- [ ] Feature doc with upload/download flows + progress + errors.
-- [ ] `FilesystemService.downloadFile` / `uploadFile` with `"filesystem-browser"` ownership and `finally` release.
-- [ ] `EspFilesystemAdapter.readFile` / `writeFile` via `EspToolAdapter` only (no feature→`esptool-js`).
-- [ ] Filesystem page: Upload, Download, Refresh, progress, overwrite confirm.
-- [ ] Disable actions while transfer active.
-- [ ] Friendly typed errors including `exists`.
-- [ ] No rename / delete / create folder / drag-and-drop / editor / OTA.
-- [ ] `pnpm lint` / `typecheck` / `test` / `build` pass.
+- [x] Feature doc with upload/download flows + progress + errors.
+- [x] `FilesystemService.downloadFile` / `uploadFile` with `"filesystem-browser"` ownership and `finally` release.
+- [x] `EspFilesystemAdapter.readFile` / `writeFile` via `EspToolAdapter` only (no feature→`esptool-js`).
+- [x] Filesystem page: Upload, Download, Refresh, progress, overwrite confirm.
+- [x] Disable actions while transfer active.
+- [x] Friendly typed errors including `exists`.
+- [x] No rename / delete / create folder / drag-and-drop / editor / OTA.
+- [x] `pnpm lint` / `typecheck` / `test` / `build` pass.
 
 ## Future Improvements
 
@@ -143,9 +143,9 @@ UI disables Upload / Download / Refresh while a transfer is active and shows a p
 ## TODO Checklist
 
 - [x] Documentation reviewed
-- [ ] Implementation complete
-- [ ] `pnpm lint` / `pnpm typecheck` / `pnpm test` / `pnpm build` pass
-- [ ] Roadmap updated
+- [x] Implementation complete
+- [x] `pnpm lint` / `pnpm typecheck` / `pnpm test` / `pnpm build` pass
+- [x] Roadmap updated
 
 ## Remaining work before full filesystem management
 

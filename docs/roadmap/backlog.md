@@ -24,7 +24,7 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 | 12       | Serial Monitor     | ✅     | Minimal UTF-8 console over `CommunicationSession`   |
 | 13       | Filesystem         | ✅     | SPIFFS / LittleFS browse-only browser               |
 | 13a      | Public Beta Harden | ✅     | Reliability, UX consistency, smoke tests            |
-| 13b      | FS Upload/Download | 🟡     | Transfer files via FilesystemService + adapter        |
+| 13b      | FS Upload/Download | ✅     | Transfer files via FilesystemService + adapter        |
 | 14       | OTA                | ⬜     | Network update flows                                |
 | 15       | IDE                | ⬜     | Monaco-based editing shell                          |
 | 16       | Release v1.0       | ⬜     | Documented APIs, tests, at least one transport      |
@@ -136,10 +136,11 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 - Consistent alerts, retries, empty/loading states; stale copy cleanup.
 - Practical `pnpm test` smoke suite (no hardware required).
 
-### FS Upload / Download 🟡
+### FS Upload / Download ✅
 
 - Upload + download over existing FilesystemService / EspFilesystemAdapter.
-- Progress, overwrite confirmation; no rename/delete/mkdir.
+- Progress, overwrite confirmation; SPIFFS primary; LittleFS transfer deferred.
+- No rename/delete/mkdir.
 
 ### OTA ⬜
 
