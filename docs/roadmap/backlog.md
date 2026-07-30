@@ -12,8 +12,8 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 | 6        | Transport IO     | ✅     | Raw `Uint8Array` stream contract for all transports |
 | 7        | Communication    | ✅     | Single-owner session over `TransportIo`             |
 | 8        | ESP Identification | ✅     | Chip detect via esptool adapter; Device + UI update |
-| 9        | Flash Service      | 🟡     | Orchestration (`FlashService`) over esptool adapter |
-| 9a       | Flash UI           | ⬜     | Thin page consuming `FlashService` + progress       |
+| 9        | Flash Service      | ✅     | Orchestration (`FlashService`) over esptool adapter |
+| 9a       | Flash UI           | 🟡     | Local `.bin` flash page + live progress             |
 | 10       | Firmware Plugins   | ⬜     | Installer contribution points + first plugins       |
 | 11       | Firmware Library   | ⬜     | Catalog, versions, local/remote artifacts           |
 | 12       | Serial Monitor     | ✅     | Minimal UTF-8 console over `CommunicationSession`   |
@@ -67,15 +67,15 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 - Detect chip family under `"chip-identification"` ownership.
 - Isolate `esptool-js` in `src/adapters/esptool`; update Device + Devices UI.
 
-### Flash Service 🟡
+### Flash Service ✅
 
 - `FlashService` identify / erase / flash / verify / reset with `"flash-service"` ownership.
-- Reusable `FlashProgress` stages; no Flash page UI yet.
+- Reusable `FlashProgress` stages for UI consumers.
 
-### Flash UI ⬜
+### Flash UI 🟡
 
-- Thin page consuming `FlashService` and rendering progress.
-- Firmware file picker only (library remains separate).
+- Local `.bin` picker, live progress, friendly errors via `FlashService`.
+- Single image at `0x10000`; firmware library remains separate.
 
 ### Firmware Plugins ⬜
 
