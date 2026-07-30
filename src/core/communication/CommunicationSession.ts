@@ -124,13 +124,19 @@ export class CommunicationSession {
   /**
    * Acquires exclusive ownership of the session for `ownerId`.
    *
+   * Allowed when the session is `"open"` (IO through this session) **or**
+   * `"closed"` (ownership-only claim for native adapters such as esptool that
+   * must use the browser port while `TransportIo` streams stay unlocked).
+   *
    * @param ownerId - Consumer identity requesting ownership.
    * @returns A lock that must be passed to IO methods and later released.
-   * @throws {CommunicationNotOpenError} When the session is not open.
+   * @throws {CommunicationNotOpenError} When the session is opening, closing, or errored.
    * @throws {CommunicationOwnershipError} When another owner already holds the session.
    */
   public acquire(ownerId: CommunicationOwnerId): CommunicationLock {
-    this.#assertOpen("acquire");
+    if (this.#state !== "open" && this.#state !== "closed") {
+      throw new CommunicationNotOpenError("acquire");
+    }
 
     const trimmed = ownerId.trim();
     if (trimmed.length === 0) {

@@ -244,6 +244,50 @@ export class DeviceManager {
   }
 
   /**
+   * Updates metadata on a connected device without reconnecting.
+   *
+   * Replaces the tracked {@link Device} handle while preserving the live
+   * {@link import("./DeviceConnection").DeviceConnection}.
+   *
+   * @param deviceId - Connected device id.
+   * @param patch - Fields to merge into {@link DeviceInfo}.
+   * @returns The updated device handle.
+   * @throws {UnknownDeviceError} When the device is not tracked.
+   */
+  public updateDeviceInfo(
+    deviceId: DeviceId,
+    patch: {
+      readonly chipFamily?: DeviceInfo["chipFamily"];
+      readonly name?: string;
+      readonly metadata?: Readonly<Record<string, string>>;
+    },
+  ): Device {
+    const existing = this.#devices.get(deviceId);
+    if (!existing) {
+      throw new UnknownDeviceError(deviceId);
+    }
+
+    const nextInfo: DeviceInfo = {
+      id: existing.info.id,
+      name: patch.name ?? existing.info.name,
+      providerId: existing.info.providerId,
+      chipFamily: patch.chipFamily ?? existing.info.chipFamily,
+      ...(existing.info.transportLabel !== undefined
+        ? { transportLabel: existing.info.transportLabel }
+        : {}),
+      ...(patch.metadata !== undefined
+        ? { metadata: patch.metadata }
+        : existing.info.metadata !== undefined
+          ? { metadata: existing.info.metadata }
+          : {}),
+    };
+
+    const updated = createDevice(nextInfo, existing.connection);
+    this.#devices.set(deviceId, updated);
+    return updated;
+  }
+
+  /**
    * Lists devices currently tracked as connected by this manager.
    *
    * @returns A readonly snapshot of connected devices.

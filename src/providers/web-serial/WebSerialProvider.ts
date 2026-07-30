@@ -180,6 +180,19 @@ export class WebSerialProvider implements DeviceProvider {
     }
   }
 
+  /**
+   * Returns the native Web Serial port for a remembered device id.
+   *
+   * Intended for adapters (for example esptool-js) that require browser port
+   * control signals. Feature UI must not use this escape hatch.
+   *
+   * @param deviceId - Device id previously returned by this provider.
+   * @returns The port, or `undefined` when unknown.
+   */
+  public getNativePort(deviceId: string): WebSerialPort | undefined {
+    return this.#ports.get(deviceId);
+  }
+
   #requireSerial() {
     const serial = getWebSerial();
     if (!serial) {

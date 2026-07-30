@@ -22,7 +22,7 @@ export type WebSerialOpenOptions = {
 };
 
 /**
- * Narrow `SerialPort` surface required by this provider.
+ * Narrow `SerialPort` surface required by this provider and native adapters.
  */
 export type WebSerialPort = {
   readonly readable: ReadableStream<Uint8Array> | null;
@@ -30,6 +30,10 @@ export type WebSerialPort = {
   getInfo(): WebSerialPortInfo;
   open(options: WebSerialOpenOptions): Promise<void>;
   close(): Promise<void>;
+  setSignals?(signals: {
+    dataTerminalReady?: boolean;
+    requestToSend?: boolean;
+  }): Promise<void>;
 };
 
 /**
