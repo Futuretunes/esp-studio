@@ -121,6 +121,14 @@ If no manifest asset exists:
 3. User selects entry → `catalog.resolve` → provider downloads required binaries.
 4. Return `FirmwareResolvedPackage` for FlashService.
 
+### Browser CORS note
+
+GitHub release CDNs do not allow cross-origin reads of asset bytes. In
+`pnpm dev` / `pnpm preview`, downloads go through the same-origin Vite proxy
+at `/__esp-studio/github-asset` (`vite.github-asset-proxy.ts`). Static hosts
+without an equivalent proxy cannot download GitHub release binaries in-browser
+unless assets are served with CORS (same constraint as ESP Web Tools).
+
 ## Flash UI
 
 | Element | Behavior |
@@ -172,3 +180,4 @@ UI maps these to friendly alerts; raw `fetch` errors are wrapped.
 ## Architectural notes (backwards-compatible)
 
 - Optional `FirmwareCatalogEntry.origin?: "manifest" | "generated"` marks GitHub fallback rows without changing existing providers.
+- Vite same-origin proxy (`/__esp-studio/github-asset`) downloads release assets during `pnpm dev` / `pnpm preview` because GitHub CDNs block browser CORS.

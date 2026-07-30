@@ -1,9 +1,10 @@
-/**
- * GitHub Releases firmware provider (internal REST DTOs stay unexported).
- *
- * @packageDocumentation
- */
-
+export {
+  GITHUB_ASSET_PROXY_PATH,
+  downloadAssetBytes,
+  downloadAssetText,
+  fetchLatestRelease,
+  resolveGitHubAssetDownloadUrl,
+} from "./GitHubApi";
 export {
   GitHubFirmwareProviderError,
   isGitHubFirmwareProviderError,

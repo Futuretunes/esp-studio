@@ -12,6 +12,27 @@ const GITHUB_API_BASE = "https://api.github.com";
 const USER_AGENT = "ESP-Studio";
 
 /**
+ * Same-origin Vite proxy path for release asset bytes (avoids browser CORS).
+ *
+ * Must match `GITHUB_ASSET_PROXY_PATH` in `vite.github-asset-proxy.ts`.
+ */
+export const GITHUB_ASSET_PROXY_PATH = "/__esp-studio/github-asset" as const;
+
+/**
+ * Rewrites a GitHub asset URL through the same-origin download proxy when
+ * running in a browser. Node / non-browser callers keep the absolute URL.
+ *
+ * @param url - Asset `browser_download_url`
+ */
+export function resolveGitHubAssetDownloadUrl(url: string): string {
+  if (typeof window === "undefined") {
+    return url;
+  }
+
+  return `${GITHUB_ASSET_PROXY_PATH}?url=${encodeURIComponent(url)}`;
+}
+
+/**
  * Fetches the latest published release for a public repository.
  *
  * @param owner - Repository owner
@@ -76,6 +97,9 @@ export async function fetchLatestRelease(
 /**
  * Downloads binary bytes from a release asset URL.
  *
+ * In the browser, requests go through {@link GITHUB_ASSET_PROXY_PATH} because
+ * GitHub release CDNs do not allow cross-origin reads.
+ *
  * @param url - Asset `browser_download_url`
  * @param label - Filename used in error messages
  */
@@ -83,9 +107,11 @@ export async function downloadAssetBytes(
   url: string,
   label: string,
 ): Promise<Uint8Array> {
+  const downloadUrl = resolveGitHubAssetDownloadUrl(url);
+
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await fetch(downloadUrl, {
       headers: {
         Accept: "application/octet-stream",
         "User-Agent": USER_AGENT,
@@ -95,7 +121,7 @@ export async function downloadAssetBytes(
   } catch (error) {
     throw new GitHubFirmwareProviderError(
       "network-failure",
-      `Could not download "${label}" from GitHub.`,
+      `Could not download "${label}" from GitHub. If you are not running the Vite dev/preview server, host a same-origin proxy for release assets (GitHub CDNs block browser CORS).`,
       { cause: error },
     );
   }
