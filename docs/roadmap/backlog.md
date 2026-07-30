@@ -11,8 +11,9 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 | 5        | Device Discovery | ✅     | UX + APIs to list/request devices across providers  |
 | 6        | Transport IO     | ✅     | Raw `Uint8Array` stream contract for all transports |
 | 7        | Communication    | ✅     | Single-owner session over `TransportIo`             |
-| 8        | ESP Identification | 🟡     | Chip detect via esptool adapter; Device + UI update |
-| 9        | Flash Engine       | ⬜     | Flash orchestration reusing esptool adapter         |
+| 8        | ESP Identification | ✅     | Chip detect via esptool adapter; Device + UI update |
+| 9        | Flash Service      | 🟡     | Orchestration (`FlashService`) over esptool adapter |
+| 9a       | Flash UI           | ⬜     | Thin page consuming `FlashService` + progress       |
 | 10       | Firmware Plugins   | ⬜     | Installer contribution points + first plugins       |
 | 11       | Firmware Library   | ⬜     | Catalog, versions, local/remote artifacts           |
 | 12       | Serial Monitor     | ✅     | Minimal UTF-8 console over `CommunicationSession`   |
@@ -61,15 +62,20 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 - `CommunicationSession` owns a `TransportIo` with exclusive `CommunicationLock`.
 - Prevents concurrent readers/writers; forwards raw bytes only.
 
-### ESP Identification 🟡
+### ESP Identification ✅
 
 - Detect chip family under `"chip-identification"` ownership.
 - Isolate `esptool-js` in `src/adapters/esptool`; update Device + Devices UI.
 
-### Flash Engine ⬜
+### Flash Service 🟡
 
-- Progress events, abort, verification hooks.
-- Reuse `src/adapters/esptool`; acquire `"flash-engine"` ownership.
+- `FlashService` identify / erase / flash / verify / reset with `"flash-service"` ownership.
+- Reusable `FlashProgress` stages; no Flash page UI yet.
+
+### Flash UI ⬜
+
+- Thin page consuming `FlashService` and rendering progress.
+- Firmware file picker only (library remains separate).
 
 ### Firmware Plugins ⬜
 

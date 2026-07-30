@@ -12,12 +12,12 @@ import { WebSerialTransportIo } from "./WebSerialTransportIo";
 /**
  * Capabilities advertised by a Web Serial session with raw byte IO.
  *
- * Higher-level flashing remains deferred; `serial` is true because the
- * transport can exchange bytes through {@link TransportIo}.
+ * `flash` is true because erase/write/verify can run through the esptool
+ * adapter + Flash Service; Flash page UI remains a separate milestone.
  */
 export const WEB_SERIAL_CAPABILITIES: DeviceCapabilities = {
   serial: true,
-  flash: false,
+  flash: true,
   filesystem: false,
   ota: false,
   baudRateControl: true,
