@@ -8,3 +8,4 @@
  */
 
 export * from "./device";
+export * from "./transport";

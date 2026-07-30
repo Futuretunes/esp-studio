@@ -39,7 +39,8 @@ ESP Studio is a browser-based development environment for ESP8266 and ESP32 devi
 | Capability         | Owning module (planned)              | Notes                                           |
 | ------------------ | ------------------------------------ | ----------------------------------------------- |
 | Device abstraction | `src/core/device`                    | First real core feature; transport-agnostic     |
-| Web Serial         | `src/providers/web-serial`           | Implements `DeviceProvider`                     |
+| Transport IO       | `src/core/transport`                 | Raw `Uint8Array` streams for any transport      |
+| Web Serial         | `src/providers/web-serial`           | Implements `DeviceProvider` + `TransportIo`     |
 | WebUSB             | `src/providers/web-usb`              | Implements `DeviceProvider`                     |
 | Bluetooth          | `src/providers/bluetooth`            | Future `DeviceProvider`                         |
 | Network devices    | `src/providers/network`              | Future `DeviceProvider` for OTA targets         |
@@ -78,7 +79,7 @@ This keeps core modules testable with fake providers and keeps browser APIs out 
 
 1. **Foundation** — UI shell, routing, tooling (done).
 2. **Device Layer** — transport-agnostic contracts and manager (done).
-3. **Providers & engines** — Web Serial (current), flash, serial monitor, filesystem, OTA.
+3. **Providers & engines** — Web Serial (done), Transport IO (current), flash, serial monitor, filesystem, OTA.
 4. **Extensibility** — firmware plugins, library, IDE, public plugin API.
 5. **Release v1.0** — documented, tested, replaceable modules with at least one production transport.
 
@@ -88,5 +89,6 @@ This keeps core modules testable with fake providers and keeps browser APIs out 
 - [Plugin system](./plugin-system.md)
 - [Device Layer feature spec](../features/device-layer.md)
 - [Web Serial feature](../features/web-serial.md)
+- [Transport IO feature](../features/transport-io.md)
 - [Roadmap backlog](../roadmap/backlog.md)
 - [Current focus](../roadmap/current.md)

@@ -93,7 +93,8 @@ A provider is replaceable when it:
 2. Is registered with `DeviceManager.registerProvider`.
 3. Does not leak transport types through the public Device Layer API.
 
-Flash, Serial Monitor, Filesystem, and OTA modules must consume `Device` / `DeviceConnection` only.
+Flash, Serial Monitor, Filesystem, and OTA modules must consume `Device` /
+`DeviceConnection` / optional `connection.io` (`TransportIo`) only.
 
 ## Testing strategy
 
