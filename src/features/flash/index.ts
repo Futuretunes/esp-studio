@@ -36,5 +36,6 @@ export {
   catalogSelectionKey,
   parseCatalogSelectionKey,
   useFlashWorkflow,
+  type FlashFirmwareSource,
   type FlashUiErrorKind,
 } from "./use-flash-workflow";
