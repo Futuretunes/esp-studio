@@ -96,9 +96,13 @@ export class CommunicationSession {
   /**
    * Releases ownership (if held) and closes the underlying transport IO.
    *
-   * Idempotent when already closed.
+   * Idempotent when already closed. Always clears ownership — including
+   * ownership-only claims taken while the session remained `"closed"` for
+   * esptool operations.
    */
   public async close(): Promise<void> {
+    this.#forceReleaseActiveLock();
+
     if (this.#state === "closed") {
       return;
     }
@@ -106,7 +110,6 @@ export class CommunicationSession {
     this.#state = "closing";
 
     try {
-      this.#forceReleaseActiveLock();
       await this.#transport.close();
       this.#state = "closed";
       this.#lastError = undefined;

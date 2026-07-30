@@ -2,7 +2,16 @@ import { createDevice, type Device } from "./Device";
 import type { DeviceId, ProviderId } from "./DeviceInfo";
 import type { DeviceConnectOptions, DeviceProvider } from "./DeviceProvider";
 import type { DeviceInfo } from "./DeviceInfo";
+import { DeviceOperationLock } from "./DeviceOperationLock";
+import type { CommunicationOwnerId } from "../communication";
 
+/**
+ * Listener for device operation ownership changes.
+ */
+export type DeviceOperationOwnerListener = (
+  deviceId: DeviceId,
+  ownerId: CommunicationOwnerId | null,
+) => void;
 /**
  * Base error for Device Layer failures.
  */
@@ -78,6 +87,8 @@ export class UnknownDeviceError extends DeviceError {
 export class DeviceManager {
   readonly #providers = new Map<ProviderId, DeviceProvider>();
   readonly #devices = new Map<DeviceId, Device>();
+  readonly #operationLocks = new Map<DeviceId, DeviceOperationLock>();
+  readonly #operationOwnerListeners = new Set<DeviceOperationOwnerListener>();
 
   /**
    * Registers a device provider.
@@ -182,6 +193,7 @@ export class DeviceManager {
 
     const device = createDevice(info, connection);
     this.#devices.set(device.id, device);
+    this.#attachOperationLock(device);
     return device;
   }
 
@@ -230,7 +242,60 @@ export class DeviceManager {
 
     const device = createDevice(info, connection);
     this.#devices.set(device.id, device);
+    this.#attachOperationLock(device);
     return device;
+  }
+
+  /**
+   * Returns the shared {@link DeviceOperationLock} for a connected device.
+   *
+   * @param deviceId - Connected device id
+   * @throws {UnknownDeviceError} When the device is not tracked
+   * @throws {DeviceError} When the device has no byte transport
+   */
+  public getOperationLock(deviceId: DeviceId): DeviceOperationLock {
+    const device = this.#devices.get(deviceId);
+    if (!device) {
+      throw new UnknownDeviceError(deviceId);
+    }
+
+    const existing = this.#operationLocks.get(deviceId);
+    if (existing) {
+      return existing;
+    }
+
+    this.#attachOperationLock(device);
+    const created = this.#operationLocks.get(deviceId);
+    if (!created) {
+      throw new DeviceError(
+        "Cannot claim device operations: device has no byte transport.",
+      );
+    }
+    return created;
+  }
+
+  /**
+   * Returns the active operation owner for a device, if any.
+   *
+   * @param deviceId - Connected device id
+   */
+  public getOperationOwner(deviceId: DeviceId): CommunicationOwnerId | null {
+    return this.#operationLocks.get(deviceId)?.ownerId ?? null;
+  }
+
+  /**
+   * Subscribes to operation ownership changes across connected devices.
+   *
+   * @param listener - Called when a device's owner changes
+   * @returns Unsubscribe function
+   */
+  public subscribeOperationOwner(
+    listener: DeviceOperationOwnerListener,
+  ): () => void {
+    this.#operationOwnerListeners.add(listener);
+    return () => {
+      this.#operationOwnerListeners.delete(listener);
+    };
   }
 
   /**
@@ -311,6 +376,7 @@ export class DeviceManager {
     try {
       await device.disconnect();
     } finally {
+      await this.#disposeOperationLock(deviceId);
       this.#devices.delete(deviceId);
     }
   }
@@ -341,6 +407,42 @@ export class DeviceManager {
       throw new DeviceError("Failed to disconnect one or more devices", {
         cause: firstError,
       });
+    }
+  }
+
+  #attachOperationLock(device: Device): void {
+    if (this.#operationLocks.has(device.id)) {
+      return;
+    }
+    const io = device.connection.io;
+    if (!io) {
+      return;
+    }
+    const lock = new DeviceOperationLock(io, (ownerId) => {
+      this.#notifyOperationOwner(device.id, ownerId);
+    });
+    this.#operationLocks.set(device.id, lock);
+  }
+
+  async #disposeOperationLock(deviceId: DeviceId): Promise<void> {
+    const lock = this.#operationLocks.get(deviceId);
+    if (!lock) {
+      return;
+    }
+    this.#operationLocks.delete(deviceId);
+    try {
+      await lock.dispose();
+    } catch {
+      this.#notifyOperationOwner(deviceId, null);
+    }
+  }
+
+  #notifyOperationOwner(
+    deviceId: DeviceId,
+    ownerId: CommunicationOwnerId | null,
+  ): void {
+    for (const listener of this.#operationOwnerListeners) {
+      listener(deviceId, ownerId);
     }
   }
 

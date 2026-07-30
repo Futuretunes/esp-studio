@@ -11,9 +11,14 @@ import {
 } from "@/adapters/esptool";
 import {
   CommunicationOwnershipError,
-  CommunicationSession,
+  type CommunicationLock,
+  type CommunicationSession,
 } from "@/core/communication";
-import type { DeviceManager } from "@/core/device";
+import {
+  formatDeviceBusyMessage,
+  type DeviceManager,
+  type DeviceOperationLock,
+} from "@/core/device";
 import { FLASH_SERVICE_OWNER_ID } from "@/features/flash/constants";
 import {
   FlashBusyError,
@@ -39,6 +44,7 @@ import {
 type ResolvedTarget = {
   readonly deviceId: string;
   readonly port: EspToolSerialPort;
+  readonly operationLock: DeviceOperationLock;
   readonly session: CommunicationSession;
 };
 
@@ -281,8 +287,8 @@ export class FlashService {
       percent: 0,
     });
 
-    let lock: ReturnType<CommunicationSession["acquire"]> | undefined;
-    let session: CommunicationSession | undefined;
+    let lock: CommunicationLock | undefined;
+    let operationLock: DeviceOperationLock | undefined;
     const adapter =
       options.baudRate !== undefined
         ? new EspToolAdapter(options.baudRate)
@@ -290,14 +296,14 @@ export class FlashService {
 
     try {
       const target = this.#resolveTarget(deviceId);
-      session = target.session;
+      operationLock = target.operationLock;
 
       try {
-        lock = session.acquire(FLASH_SERVICE_OWNER_ID);
+        lock = operationLock.claim(FLASH_SERVICE_OWNER_ID);
       } catch (error) {
         if (error instanceof CommunicationOwnershipError) {
           throw new FlashBusyError(
-            `Cannot run flash service while another tool owns the connection (${session.ownerId ?? "unknown"}). Stop the Serial Monitor and retry.`,
+            formatDeviceBusyMessage(operationLock.ownerId, "flash"),
             { cause: error },
           );
         }
@@ -321,9 +327,9 @@ export class FlashService {
         error: flashError,
       };
     } finally {
-      if (session !== undefined && lock !== undefined) {
+      if (operationLock !== undefined && lock !== undefined) {
         try {
-          session.release(lock);
+          operationLock.release(lock);
         } catch {
           /* Never leave an unreleased lock intentionally; ignore double-release. */
         }
@@ -342,7 +348,10 @@ export class FlashService {
 
     if (io.state !== "closed") {
       throw new FlashBusyError(
-        "Cannot flash while another tool owns the connection. Stop the Serial Monitor and retry.",
+        formatDeviceBusyMessage(
+          this.#manager.getOperationOwner(deviceId) ?? "serial-monitor",
+          "flash",
+        ),
       );
     }
 
@@ -360,10 +369,13 @@ export class FlashService {
       );
     }
 
+    const operationLock = this.#manager.getOperationLock(deviceId);
+
     return {
       deviceId,
       port: nativePort,
-      session: new CommunicationSession(io),
+      operationLock,
+      session: operationLock.session,
     };
   }
 

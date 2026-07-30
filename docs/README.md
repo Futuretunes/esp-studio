@@ -28,6 +28,7 @@ Internal product and architecture documentation.
 | Firmware Library          | [features/firmware-library.md](./features/firmware-library.md)           |
 | Continuous Deployment     | [features/deployment.md](./features/deployment.md)                       |
 | Device Diagnostics        | [features/device-diagnostics.md](./features/device-diagnostics.md)       |
+| Device Operation Lock     | [features/device-operation-lock.md](./features/device-operation-lock.md) |
 | Public Beta Hardening     | [features/public-beta-hardening.md](./features/public-beta-hardening.md) |
 | Hardware compatibility    | [hardware-compatibility.md](./hardware-compatibility.md)                 |
 | Release v0.9.0-beta.1     | [releases/v0.9.0-beta.1.md](./releases/v0.9.0-beta.1.md)                 |

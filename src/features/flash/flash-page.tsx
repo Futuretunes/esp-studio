@@ -1,6 +1,7 @@
 import { useEffect, type JSX } from "react";
 import { useSearchParams } from "react-router-dom";
 
+import { DeviceBusyBanner } from "@/components/device-busy-banner";
 import { PageHeader } from "@/components/page-header";
 import { FlashPanel } from "@/features/flash/flash-panel";
 import { useFlashWorkflow } from "@/features/flash/use-flash-workflow";
@@ -47,6 +48,9 @@ export function FlashFeature(): JSX.Element {
     selectFirmwareFile,
     clearFirmware,
     startFlash,
+    builtInCatalogStatus,
+    builtInCatalogError,
+    retryBuiltInCatalog,
   } = useFlashWorkflow();
 
   useEffect(() => {
@@ -82,11 +86,16 @@ export function FlashFeature(): JSX.Element {
         title="Install Firmware"
         description="Connect a device, choose a project, then click Install Firmware."
       />
+      <div className="mb-4">
+        <DeviceBusyBanner attempting="flash" />
+      </div>
       <FlashPanel
         activeDevice={activeDevice}
         webSerialSupported={webSerialSupported}
         firmwareSource={firmwareSource}
         builtInEntries={builtInEntries}
+        builtInCatalogStatus={builtInCatalogStatus}
+        builtInCatalogError={builtInCatalogError}
         selectedBuiltInId={selectedBuiltInId}
         repositorySlug={repositorySlug}
         releaseSummary={releaseSummary}
@@ -112,6 +121,7 @@ export function FlashFeature(): JSX.Element {
           void loadGitHubRepository();
         }}
         onSelectBuiltInEntry={selectBuiltInEntry}
+        onRetryBuiltInCatalog={retryBuiltInCatalog}
         onSelectCatalogEntry={selectCatalogEntry}
         onSelectFile={(file) => {
           void selectFirmwareFile(file);

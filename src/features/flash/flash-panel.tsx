@@ -46,6 +46,8 @@ type FlashPanelProps = {
   webSerialSupported: boolean | null;
   firmwareSource: FlashFirmwareSource;
   builtInEntries: readonly BuiltInCatalogEntry[];
+  builtInCatalogStatus: "loading" | "ready" | "error";
+  builtInCatalogError: string | null;
   selectedBuiltInId: string | null;
   repositorySlug: string;
   releaseSummary: GitHubReleaseSummary | null;
@@ -69,6 +71,7 @@ type FlashPanelProps = {
   onRepositorySlugChange: (slug: string) => void;
   onLoadGitHubRepository: () => void;
   onSelectBuiltInEntry: (entryId: string) => void;
+  onRetryBuiltInCatalog: () => void;
   onSelectCatalogEntry: (key: string) => void;
   onSelectFile: (file: File | null) => void;
   onClearFile: () => void;
@@ -141,6 +144,8 @@ export function FlashPanel({
   webSerialSupported,
   firmwareSource,
   builtInEntries,
+  builtInCatalogStatus,
+  builtInCatalogError,
   selectedBuiltInId,
   repositorySlug,
   releaseSummary,
@@ -164,6 +169,7 @@ export function FlashPanel({
   onRepositorySlugChange,
   onLoadGitHubRepository,
   onSelectBuiltInEntry,
+  onRetryBuiltInCatalog,
   onSelectCatalogEntry,
   onSelectFile,
   onClearFile,
@@ -278,7 +284,7 @@ export function FlashPanel({
           <AlertDescription className="space-y-3">
             <p>
               {errorMessage ??
-                "Another tool owns the serial connection. Stop the Serial Monitor and try again."}
+                "Device is busy. Stop the other tool and try again."}
             </p>
             <div className="flex flex-wrap gap-2">
               <Button type="button" size="sm" variant="secondary" asChild>
@@ -479,14 +485,47 @@ export function FlashPanel({
 
           {firmwareSource === "builtin" ? (
             <div className="space-y-4">
-              {builtInEntries.length === 0 ? (
+              {builtInCatalogStatus === "loading" ? (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Skeleton className="h-28 w-full" />
                   <Skeleton className="h-28 w-full" />
                   <Skeleton className="h-28 w-full" />
                   <Skeleton className="h-28 w-full" />
                 </div>
-              ) : (
+              ) : null}
+
+              {builtInCatalogStatus === "error" ? (
+                <Alert variant="destructive">
+                  <AlertTitle>Built-in catalog unavailable</AlertTitle>
+                  <AlertDescription className="space-y-3">
+                    <p>
+                      {builtInCatalogError ??
+                        "The built-in firmware catalog could not be loaded."}
+                    </p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={onRetryBuiltInCatalog}
+                    >
+                      Retry
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+
+              {builtInCatalogStatus === "ready" &&
+              builtInEntries.length === 0 ? (
+                <Alert variant="info">
+                  <AlertTitle>No built-in projects</AlertTitle>
+                  <AlertDescription>
+                    The built-in catalog is empty. Choose GitHub Repository or
+                    Local File instead.
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+
+              {builtInCatalogStatus === "ready" && builtInEntries.length > 0 ? (
                 <div className="grid gap-3 sm:grid-cols-2">
                   {builtInEntries.map((entry) => {
                     const Icon = BUILTIN_ICONS[entry.icon] ?? CircuitBoard;
@@ -542,7 +581,7 @@ export function FlashPanel({
                     );
                   })}
                 </div>
-              )}
+              ) : null}
 
               {isLoadingGithub || isResolving ? (
                 <div className="space-y-2">

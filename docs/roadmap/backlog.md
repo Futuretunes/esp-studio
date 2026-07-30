@@ -27,9 +27,11 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 | 13b      | FS Upload/Download | ✅     | Transfer files via FilesystemService + adapter        |
 | 14       | OTA                | ⬜     | Network update flows                                |
 | 15       | IDE                | ⬜     | Monaco-based editing shell                          |
-| 16       | Release v1.0       | 🟡     | RC docs + quality; hardware QA then tag             |
+| 16       | Release v1.0       | 🟡     | Tag v0.9.0-beta.1 after device op lock              |
 | 16a      | Continuous Deploy  | ✅     | CI + FTP deploy of dist/ to shared hosting          |
 | 16b      | Device Diagnostics | ✅     | Support report export for bug reports               |
+| 16c      | Device Op Lock     | ✅     | Shared ownership across Flash/Identify/FS/Serial    |
+| 16d      | v0.9.1             | ⬜     | Bug fixes · hardware compatibility · performance    |
 
 ## Detail by milestone
 
@@ -165,9 +167,14 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 - Diagnostics page aggregating device/browser/build facts.
 - Export `diagnostics.json` for support (no serial logs / FS contents).
 
+### Device Operation Lock ✅
+
+- Shared per-device ownership via `DeviceManager.getOperationLock`.
+- Prevents concurrent Flash / Identify / Filesystem / Serial esptool contention.
+
 ### Release v1.0 🟡
 
-- RC: `docs/releases/v0.9.0-beta.1.md`, honest beta copy, version tag prep.
+- RC: `docs/releases/v0.9.0-beta.1.md`, honest beta copy, device op lock.
 - Remaining: hardware QA matrix, GitHub Release tag, production deploy.
 - Later: API freeze notes, example provider, sample firmware plugin.
 

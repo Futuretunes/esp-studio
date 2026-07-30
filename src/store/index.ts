@@ -5,6 +5,7 @@ import type {
   DeviceCapabilities,
   DeviceConnectionState,
 } from "@/core/device";
+import type { CommunicationOwnerId } from "@/core/communication";
 import type { AppTheme } from "@/types";
 
 /**
@@ -43,10 +44,13 @@ type DeviceUiState = {
     | null;
   errorMessage: string | null;
   activeDevice: DeviceSnapshot | null;
+  /** Active device operation owner mirrored from DeviceManager (UI only). */
+  operationOwner: CommunicationOwnerId | null;
   setWebSerialSupported: (supported: boolean) => void;
   setConnecting: (connecting: boolean) => void;
   setDisconnecting: (disconnecting: boolean) => void;
   setActiveDevice: (device: DeviceSnapshot | null) => void;
+  setOperationOwner: (ownerId: CommunicationOwnerId | null) => void;
   setError: (kind: DeviceUiState["errorKind"], message: string | null) => void;
   clearError: () => void;
 };
@@ -73,6 +77,7 @@ export const useDeviceStore = create<DeviceUiState>((set) => ({
   errorKind: null,
   errorMessage: null,
   activeDevice: null,
+  operationOwner: null,
   setWebSerialSupported: (supported) => {
     set({ webSerialSupported: supported });
   },
@@ -83,7 +88,13 @@ export const useDeviceStore = create<DeviceUiState>((set) => ({
     set({ isDisconnecting: disconnecting });
   },
   setActiveDevice: (device) => {
-    set({ activeDevice: device });
+    set({
+      activeDevice: device,
+      ...(device === null ? { operationOwner: null } : {}),
+    });
+  },
+  setOperationOwner: (ownerId) => {
+    set({ operationOwner: ownerId });
   },
   setError: (kind, message) => {
     set({ errorKind: kind, errorMessage: message });
