@@ -1,17 +1,29 @@
 # Current Focus
 
-**Active milestone:** Public beta polish (next)
+**Active milestone:** Filesystem Browser (MVP)
 
 ## Why this next
 
-One-click Install completes the core flash UX over the stable firmware platform. Next work is release readiness: docs, sample flows, and remaining product surfaces (Serial polish, Filesystem, etc.).
+One-click Install completed the flash UX. Next is on-device storage visibility: list directories/files via a dedicated filesystem service + adapter, establishing the model for upload/download later.
 
-## Just completed
+## In scope
 
-**One-click Install (MVP)** — project select auto-loads GitHub release, prefers chip-compatible options, and exposes **Install Firmware** over `FlashService`.
+1. `docs/features/filesystem-browser.md`
+2. `FilesystemService` + abstract entries + typed errors
+3. `EspFilesystemAdapter` (flash read + SPIFFS/LittleFS parse)
+4. Filesystem page: browse, expand/collapse, refresh
+
+## Out of scope
+
+Upload, download, delete, rename, create folder, OTA, editor integration
+
+## Next up
+
+Editable filesystem (upload/download) or public beta polish.
 
 ## Related documents
 
-- [One-click Install](../features/one-click-install.md)
-- [Built-in Firmware Catalog](../features/built-in-firmware-catalog.md)
+- [Filesystem Browser](../features/filesystem-browser.md)
+- [Communication Session](../features/communication-session.md)
+- [Flash Service](../features/flash-service.md)
 - [Backlog](./backlog.md)

@@ -18,7 +18,7 @@ import { WebSerialTransportIo } from "./WebSerialTransportIo";
 export const WEB_SERIAL_CAPABILITIES: DeviceCapabilities = {
   serial: true,
   flash: true,
-  filesystem: false,
+  filesystem: true,
   ota: false,
   baudRateControl: true,
 };
