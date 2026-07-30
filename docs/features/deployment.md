@@ -75,7 +75,13 @@ pnpm build
 # Upload contents of dist/ to the shared host (FTP/SFTP/cPanel file manager)
 ```
 
-Ensure `/build.json` is present at the site root alongside `index.html`.
+**Important (blank white page):**
+
+1. Upload the **contents** of `dist/` (or the release ZIP) so `index.html` sits at the URL you open — do **not** leave an extra `dist/` folder in the path.
+2. Production builds use **relative** asset URLs (`./assets/...`) so subdirectory hosts work.
+3. If the page is still white, open DevTools → Network and confirm `./assets/index-*.js` returns **200** (not 404).
+
+Ensure `build.json` is present next to `index.html`.
 
 ### GitHub firmware downloads on static hosts
 

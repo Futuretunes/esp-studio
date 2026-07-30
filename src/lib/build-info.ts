@@ -38,11 +38,15 @@ export function isBuildInfo(value: unknown): value is BuildInfo {
 }
 
 /**
- * Fetches `/build.json` from the deployed (or dev) origin.
+ * Fetches `build.json` from the deployed (or dev) origin.
+ *
+ * Uses Vite {@link import.meta.env.BASE_URL} so subdirectory / relative-base
+ * deploys resolve correctly (not a hard-coded `/build.json`).
  */
 export async function loadBuildInfo(): Promise<BuildInfo> {
   try {
-    const response = await fetch("/build.json", { cache: "no-store" });
+    const url = `${import.meta.env.BASE_URL}build.json`;
+    const response = await fetch(url, { cache: "no-store" });
     if (!response.ok) {
       return FALLBACK_BUILD_INFO;
     }

@@ -10,6 +10,9 @@ import { githubAssetProxyPlugin } from "./vite.github-asset-proxy";
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
+  // Relative asset URLs so static hosts / subfolders do not 404 /assets/*
+  // (absolute "/assets/..." causes a blank white page when not at domain root).
+  base: "./",
   plugins: [react(), tailwindcss(), githubAssetProxyPlugin()],
   resolve: {
     alias: {
