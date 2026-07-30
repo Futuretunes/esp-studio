@@ -15,6 +15,7 @@ Internal product and architecture documentation.
 | Transport IO Layer        | [features/transport-io.md](./features/transport-io.md)                   |
 | Communication Session     | [features/communication-session.md](./features/communication-session.md) |
 | Serial Monitor (Minimal)  | [features/serial-monitor.md](./features/serial-monitor.md)               |
+| ESP Identification        | [features/esp-identification.md](./features/esp-identification.md)       |
 | Feature template          | [_templates/feature.md](./_templates/feature.md)                         |
 
 ## Process

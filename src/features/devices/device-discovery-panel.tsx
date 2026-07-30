@@ -2,6 +2,7 @@ import type { JSX } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -10,14 +11,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatChipLabel } from "@/features/identification/format-chip-label";
 import type { DeviceSnapshot } from "@/store";
 
 type DeviceDiscoveryPanelProps = {
   webSerialSupported: boolean | null;
   isConnecting: boolean;
+  isIdentifying?: boolean;
+  identifyError?: string | null;
   activeDevice: DeviceSnapshot | null;
   errorKind: "unsupported" | "cancelled" | "failed" | "disconnect" | null;
   errorMessage: string | null;
+  onIdentify?: (() => void) | undefined;
 };
 
 function capabilityEntries(
@@ -38,9 +43,12 @@ function capabilityEntries(
 export function DeviceDiscoveryPanel({
   webSerialSupported,
   isConnecting,
+  isIdentifying = false,
+  identifyError = null,
   activeDevice,
   errorKind,
   errorMessage,
+  onIdentify,
 }: DeviceDiscoveryPanelProps): JSX.Element {
   return (
     <div className="space-y-4">
@@ -84,6 +92,13 @@ export function DeviceDiscoveryPanel({
         </Alert>
       ) : null}
 
+      {identifyError ? (
+        <Alert variant="destructive">
+          <AlertTitle>Identification failed</AlertTitle>
+          <AlertDescription>{identifyError}</AlertDescription>
+        </Alert>
+      ) : null}
+
       {isConnecting ? (
         <Card>
           <CardHeader>
@@ -100,6 +115,21 @@ export function DeviceDiscoveryPanel({
         </Card>
       ) : null}
 
+      {isIdentifying ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Identifying chip</CardTitle>
+            <CardDescription>
+              Reading chip identity over the serial connection…
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-4 w-1/2" />
+          </CardContent>
+        </Card>
+      ) : null}
+
       {activeDevice ? (
         <Card>
           <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
@@ -109,16 +139,35 @@ export function DeviceDiscoveryPanel({
                 {activeDevice.transportLabel ?? "Serial port"}
               </CardDescription>
             </div>
-            <Badge
-              variant={
-                activeDevice.status === "connected" ? "success" : "secondary"
-              }
-            >
-              {activeDevice.status}
-            </Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge
+                variant={
+                  activeDevice.status === "connected" ? "success" : "secondary"
+                }
+              >
+                {activeDevice.status}
+              </Badge>
+              {onIdentify ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={isIdentifying || isConnecting}
+                  onClick={onIdentify}
+                >
+                  {isIdentifying ? "Identifying…" : "Identify"}
+                </Button>
+              ) : null}
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <dl className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <dt className="text-muted-foreground text-xs">Chip</dt>
+                <dd className="text-sm font-medium">
+                  {formatChipLabel(activeDevice.chipFamily)}
+                </dd>
+              </div>
               <div>
                 <dt className="text-muted-foreground text-xs">Provider</dt>
                 <dd className="text-sm font-medium">
@@ -130,12 +179,6 @@ export function DeviceDiscoveryPanel({
                   Connection status
                 </dt>
                 <dd className="text-sm font-medium">{activeDevice.status}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground text-xs">Chip family</dt>
-                <dd className="text-sm font-medium">
-                  {activeDevice.chipFamily}
-                </dd>
               </div>
               <div>
                 <dt className="text-muted-foreground text-xs">Device id</dt>
@@ -173,8 +216,8 @@ export function DeviceDiscoveryPanel({
             <CardTitle>No device connected</CardTitle>
             <CardDescription>
               Click <span className="font-medium">Connect Device</span> to open
-              the browser serial port chooser. Flashing and serial I/O are not
-              part of this step.
+              the browser serial port chooser. Flashing is not part of this
+              step.
             </CardDescription>
           </CardHeader>
         </Card>

@@ -22,6 +22,7 @@ export type ChipFamily =
   | "esp32"
   | "esp32-s2"
   | "esp32-s3"
+  | "esp32-c2"
   | "esp32-c3"
   | "esp32-c6"
   | "esp32-h2"

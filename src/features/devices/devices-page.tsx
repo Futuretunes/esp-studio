@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { DeviceError } from "@/core/device";
 import { DeviceDiscoveryPanel } from "@/features/devices/device-discovery-panel";
 import { toDeviceSnapshot } from "@/features/devices/to-device-snapshot";
+import { useChipIdentification } from "@/features/identification/use-chip-identification";
 import {
   isWebSerialSupported,
   WEB_SERIAL_PROVIDER_ID,
@@ -22,7 +23,7 @@ function isCancellationError(error: unknown): boolean {
 }
 
 /**
- * Devices feature: Web Serial discovery and connection status UI.
+ * Devices feature: Web Serial discovery, connection status, and chip identity.
  */
 export function DevicesFeature(): JSX.Element {
   const manager = useDeviceManager();
@@ -38,6 +39,8 @@ export function DevicesFeature(): JSX.Element {
   const setActiveDevice = useDeviceStore((s) => s.setActiveDevice);
   const setError = useDeviceStore((s) => s.setError);
   const clearError = useDeviceStore((s) => s.clearError);
+  const { isIdentifying, identifyError, runIdentification } =
+    useChipIdentification();
 
   useEffect(() => {
     const supported = isWebSerialSupported();
@@ -64,6 +67,7 @@ export function DevicesFeature(): JSX.Element {
       setActiveDevice(
         toDeviceSnapshot(device, provider?.label ?? "Web Serial"),
       );
+      void runIdentification(device.id);
     } catch (error) {
       setActiveDevice(null);
 
@@ -80,6 +84,7 @@ export function DevicesFeature(): JSX.Element {
   }, [
     clearError,
     manager,
+    runIdentification,
     setActiveDevice,
     setConnecting,
     setError,
@@ -114,7 +119,10 @@ export function DevicesFeature(): JSX.Element {
   ]);
 
   const connectDisabled =
-    webSerialSupported === false || isConnecting || isDisconnecting;
+    webSerialSupported === false ||
+    isConnecting ||
+    isDisconnecting ||
+    isIdentifying;
 
   return (
     <div>
@@ -126,7 +134,7 @@ export function DevicesFeature(): JSX.Element {
             <Button
               type="button"
               variant="outline"
-              disabled={isDisconnecting || isConnecting}
+              disabled={isDisconnecting || isConnecting || isIdentifying}
               onClick={() => {
                 void handleDisconnect();
               }}
@@ -150,9 +158,18 @@ export function DevicesFeature(): JSX.Element {
       <DeviceDiscoveryPanel
         webSerialSupported={webSerialSupported}
         isConnecting={isConnecting}
+        isIdentifying={isIdentifying}
+        identifyError={identifyError}
         activeDevice={activeDevice}
         errorKind={errorKind}
         errorMessage={errorMessage}
+        onIdentify={
+          activeDevice
+            ? () => {
+                void runIdentification(activeDevice.id);
+              }
+            : undefined
+        }
       />
     </div>
   );
