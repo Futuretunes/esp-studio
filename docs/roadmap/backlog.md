@@ -14,7 +14,8 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 | 8        | ESP Identification | ✅     | Chip detect via esptool adapter; Device + UI update |
 | 9        | Flash Service      | ✅     | Orchestration (`FlashService`) over esptool adapter |
 | 9a       | Flash UI           | ✅     | Local `.bin` flash page + live progress             |
-| 9b       | Firmware Catalog   | 🟡     | Multi-provider catalog; LocalFirmwareProvider only  |
+| 9b       | Firmware Catalog   | ✅     | Multi-provider catalog; LocalFirmwareProvider only  |
+| 9c       | Firmware Manifest  | 🟡     | Canonical JSON schema + parser/validator            |
 | 10       | Firmware Plugins   | ⬜     | Installer contribution points + first plugins       |
 | 11       | Firmware Library   | ⬜     | Catalog browser + one-click install                 |
 | 12       | Serial Monitor     | ✅     | Minimal UTF-8 console over `CommunicationSession`   |
@@ -78,10 +79,15 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 - Local `.bin` flash page with live progress and friendly errors.
 - Selects firmware via `FirmwareCatalog` (“Local file…” → picker).
 
-### Firmware Catalog 🟡
+### Firmware Catalog ✅
 
 - Multi-provider `FirmwareCatalog`; MVP ships `LocalFirmwareProvider` only.
-- Flash UI consumes catalog entries; GitHub / ESP Web Tools deferred.
+- Flash UI consumes catalog entries.
+
+### Firmware Manifest 🟡
+
+- Canonical `schemaVersion: 1` JSON document, parser, and typed validator.
+- Contract between providers and FlashService (no GitHub/downloads yet).
 
 ### Firmware Plugins ⬜
 

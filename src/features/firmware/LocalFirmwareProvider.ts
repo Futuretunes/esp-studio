@@ -8,6 +8,11 @@ import type {
   FirmwareProvider,
   FirmwareResolvedPackage,
 } from "@/features/firmware/FirmwareProvider";
+import {
+  createLocalFirmwareManifestDocument,
+  toCatalogManifest,
+} from "@/features/firmware/FirmwareManifestSchema";
+import { validateFirmwareManifestDocument } from "@/features/firmware/FirmwareManifestValidator";
 
 /** Provider id for {@link LocalFirmwareProvider}. */
 export const LOCAL_FIRMWARE_PROVIDER_ID = "local" as const;
@@ -79,6 +84,9 @@ export class LocalFirmwareProvider implements FirmwareProvider {
   /**
    * Imports a user-selected `.bin` into the catalog as the current package.
    *
+   * Builds a canonical firmware manifest document, validates it (including
+   * image existence), then stores the resolved package.
+   *
    * @param file - Browser `File` from the file picker
    * @param address - Flash offset (default application address `0x10000`)
    */
@@ -93,26 +101,47 @@ export class LocalFirmwareProvider implements FirmwareProvider {
 
     const buffer = await file.arrayBuffer();
     const data = new Uint8Array(buffer);
+    if (data.byteLength === 0) {
+      throw new Error("The selected firmware file is empty.");
+    }
+
     this.#sequence += 1;
     const manifestId = `local:file:${String(this.#sequence)}`;
+    const imageId = `${manifestId}:app`;
+
+    const document = createLocalFirmwareManifestDocument({
+      id: manifestId,
+      title: file.name,
+      description: "Locally selected firmware image.",
+      providerId: this.id,
+      imageId,
+      imageLabel: "application",
+      address,
+      size: data.byteLength,
+      path: file.name,
+    });
+
+    const images = [
+      {
+        id: imageId,
+        label: "application",
+        address,
+        size: data.byteLength,
+        data,
+      },
+    ] as const;
+
+    const validation = validateFirmwareManifestDocument(document, { images });
+    if (!validation.ok) {
+      const detail = validation.issues
+        .map((issue) => `${issue.path}: ${issue.message}`)
+        .join("; ");
+      throw new Error(`Invalid local firmware manifest: ${detail}`);
+    }
 
     const resolved: FirmwareResolvedPackage = {
-      manifest: {
-        id: manifestId,
-        title: file.name,
-        description: "Locally selected firmware image.",
-        providerId: this.id,
-        sourceKind: "local",
-      },
-      images: [
-        {
-          id: `${manifestId}:app`,
-          label: "application",
-          address,
-          size: data.byteLength,
-          data,
-        },
-      ],
+      manifest: toCatalogManifest(validation.document, this.id),
+      images,
     };
 
     this.#current = resolved;
