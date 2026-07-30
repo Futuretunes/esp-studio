@@ -9,7 +9,6 @@ import {
 } from "@/features/firmware/providers/github/GitHubRelease";
 
 const GITHUB_API_BASE = "https://api.github.com";
-const USER_AGENT = "ESP-Studio";
 
 /**
  * Same-origin Vite proxy path for release asset bytes (avoids browser CORS).
@@ -49,8 +48,6 @@ export async function fetchLatestRelease(
     response = await fetch(releaseUrl, {
       headers: {
         Accept: "application/vnd.github+json",
-        "User-Agent": USER_AGENT,
-        "X-GitHub-Api-Version": "2022-11-28",
       },
     });
   } catch (error) {
@@ -114,7 +111,6 @@ export async function downloadAssetBytes(
     response = await fetch(downloadUrl, {
       headers: {
         Accept: "application/octet-stream",
-        "User-Agent": USER_AGENT,
       },
       redirect: "follow",
     });
@@ -170,8 +166,6 @@ async function distinguishRepoOrReleaseMissing(
     response = await fetch(repoUrl, {
       headers: {
         Accept: "application/vnd.github+json",
-        "User-Agent": USER_AGENT,
-        "X-GitHub-Api-Version": "2022-11-28",
       },
     });
   } catch (error) {
