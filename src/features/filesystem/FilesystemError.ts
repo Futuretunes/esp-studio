@@ -9,6 +9,7 @@ export type FilesystemErrorCode =
   | "no-device"
   | "busy"
   | "not-found"
+  | "exists"
   | "unsupported"
   | "io-failure"
   | "invalid-path";

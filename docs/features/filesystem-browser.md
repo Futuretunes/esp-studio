@@ -122,8 +122,9 @@ Root `/` lists filesystem **volumes** (partition labels) as directories. Expandi
 
 ## Future Improvements
 
-- Upload / download / delete.
-- Writable LittleFS/SPIFFS mutation.
+- ~~Upload / download~~ → see [Filesystem Transfer](./filesystem-transfer.md).
+- Delete / rename / create folder.
+- Writable LittleFS mutation (full CTZ).
 - Partition picker when multiple volumes exist.
 - Editor open-from-path.
 
