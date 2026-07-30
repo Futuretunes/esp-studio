@@ -37,4 +37,8 @@ export type FirmwareManifest = {
    * When omitted, Flash derives the kind from image labels / ids / filenames.
    */
   readonly packageKind?: "complete" | "application-only";
+  /**
+   * Optional filesystem support from Manifest V2.
+   */
+  readonly filesystemSupport?: "none" | "spiffs" | "littlefs" | "both";
 };

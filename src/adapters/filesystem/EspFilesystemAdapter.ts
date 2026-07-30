@@ -43,6 +43,19 @@ type FilesystemVolume = {
 };
 
 /**
+ * Volume usage statistics returned by {@link EspFilesystemAdapter.getVolumeStats}.
+ */
+export type FilesystemVolumeStats = {
+  readonly label: string;
+  readonly format: "spiffs" | "littlefs" | "unknown";
+  readonly totalBytes: number;
+  readonly usedBytes: number | null;
+  readonly freeBytes: number | null;
+  readonly fileCount: number;
+  readonly directoryCount: number;
+};
+
+/**
  * Options for {@link EspFilesystemAdapter.writeFile}.
  */
 export type EspFilesystemWriteOptions = {
@@ -286,6 +299,347 @@ export class EspFilesystemAdapter {
       percent: 100,
       bytesTransferred: data.byteLength,
       totalBytes: data.byteLength,
+    });
+  }
+
+  /**
+   * Deletes a file, or recursively deletes all files under a directory prefix.
+   *
+   * SPIFFS only in this MVP. LittleFS mutate remains unsupported.
+   *
+   * @param port - Native Web Serial port
+   * @param path - Absolute file or directory path
+   * @param options - Optional progress
+   */
+  async deletePath(
+    port: EspToolSerialPort,
+    path: FilesystemPath,
+    options: EspFilesystemWriteOptions = {},
+  ): Promise<void> {
+    await this.#mutateSpiffsMap(port, path, options, (files, relativePath) => {
+      const key = normalizeRelativePath(relativePath);
+      if (files.has(key)) {
+        files.delete(key);
+        return;
+      }
+
+      const prefix = key.endsWith("/") ? key : `${key}/`;
+      let removed = 0;
+      for (const existing of [...files.keys()]) {
+        if (existing === key || existing.startsWith(prefix)) {
+          files.delete(existing);
+          removed += 1;
+        }
+      }
+      if (removed === 0) {
+        throw new FilesystemError(
+          "not-found",
+          `Path "${path}" was not found on the device filesystem.`,
+        );
+      }
+    });
+  }
+
+  /**
+   * Renames a file within the same volume (SPIFFS rebuild).
+   *
+   * @param port - Native Web Serial port
+   * @param fromPath - Existing absolute file path
+   * @param toPath - Destination absolute file path
+   * @param options - Overwrite + progress
+   */
+  async renamePath(
+    port: EspToolSerialPort,
+    fromPath: FilesystemPath,
+    toPath: FilesystemPath,
+    options: EspFilesystemWriteOptions = {},
+  ): Promise<void> {
+    const fromNormalized = normalizePath(fromPath);
+    const toNormalized = normalizePath(toPath);
+    if (
+      fromNormalized === null ||
+      toNormalized === null ||
+      fromNormalized === "/" ||
+      toNormalized === "/"
+    ) {
+      throw new FilesystemError(
+        "invalid-path",
+        "Rename requires absolute file paths under a volume.",
+      );
+    }
+
+    const volumes = await this.#discoverVolumes(port);
+    const fromResolved = resolveVolumePath(volumes, fromNormalized);
+    const toResolved = resolveVolumePath(volumes, toNormalized);
+    if (fromResolved.volume.label !== toResolved.volume.label) {
+      throw new FilesystemError(
+        "unsupported",
+        "Rename across filesystem volumes is not supported.",
+      );
+    }
+
+    this.#emit(options.onProgress, "preparing", "Resolving filesystem volume…", {
+      percent: 5,
+    });
+    this.#emit(options.onProgress, "reading", "Reading filesystem volume…", {
+      percent: 20,
+    });
+    const image = await this.#readVolumeImage(port, fromResolved.volume);
+    const format =
+      detectFilesystemFormat(image) ?? fromResolved.volume.format;
+    if (format === "littlefs") {
+      throw new FilesystemError(
+        "unsupported",
+        `LittleFS rename is not supported in this MVP for volume "${fromResolved.volume.label}".`,
+      );
+    }
+
+    const files = extractSpiffsFiles(image);
+    const fromKey = normalizeRelativePath(fromResolved.relativePath);
+    const toKey = normalizeRelativePath(toResolved.relativePath);
+    const data = files.get(fromKey);
+    if (data === undefined) {
+      throw new FilesystemError(
+        "not-found",
+        `File "${fromPath}" was not found.`,
+      );
+    }
+    if (files.has(toKey) && options.overwrite !== true) {
+      throw new FilesystemError(
+        "exists",
+        `File "${toPath}" already exists. Confirm overwrite to replace it.`,
+      );
+    }
+    files.delete(fromKey);
+    files.set(toKey, data);
+
+    this.#emit(options.onProgress, "writing", "Rebuilding filesystem image…", {
+      percent: 45,
+    });
+    const pageSize = detectSpiffsPageSize(image);
+    const blockSize = 4096;
+    const alignedSize =
+      Math.ceil(fromResolved.volume.size / blockSize) * blockSize;
+    const nextImage = buildSpiffsImage(
+      files,
+      Math.max(alignedSize, blockSize),
+      pageSize,
+      blockSize,
+    ).subarray(0, fromResolved.volume.size);
+
+    await this.#esptool.flash(port, {
+      images: [
+        {
+          address: fromResolved.volume.address,
+          data: nextImage,
+        },
+      ],
+      eraseAll: false,
+      compress: true,
+    });
+
+    this.#emit(options.onProgress, "completed", "Rename complete.", {
+      percent: 100,
+    });
+  }
+
+  /**
+   * Creates a synthetic directory by writing a `.keep` marker (SPIFFS).
+   *
+   * @param port - Native Web Serial port
+   * @param path - Absolute directory path under a volume
+   * @param options - Progress
+   */
+  async createDirectory(
+    port: EspToolSerialPort,
+    path: FilesystemPath,
+    options: EspFilesystemWriteOptions = {},
+  ): Promise<void> {
+    const normalized = normalizePath(path);
+    if (normalized === null || normalized === "/") {
+      throw new FilesystemError(
+        "invalid-path",
+        "Create folder requires a path under a volume.",
+      );
+    }
+
+    const markerPath = `${normalized.replace(/\/$/u, "")}/.keep`;
+    await this.writeFile(port, markerPath, new Uint8Array(0), {
+      overwrite: true,
+      ...(options.onProgress !== undefined
+        ? { onProgress: options.onProgress }
+        : {}),
+    });
+  }
+
+  /**
+   * Returns volume statistics (total / used / free / counts) for a volume path.
+   *
+   * @param port - Native Web Serial port
+   * @param volumePath - `/` volume path such as `/spiffs`
+   */
+  async getVolumeStats(
+    port: EspToolSerialPort,
+    volumePath: FilesystemPath,
+  ): Promise<FilesystemVolumeStats> {
+    const normalized = normalizePath(volumePath);
+    if (normalized === null || normalized === "/") {
+      throw new FilesystemError(
+        "invalid-path",
+        "Select a filesystem volume to show statistics.",
+      );
+    }
+
+    const volumes = await this.#discoverVolumes(port);
+    const resolved = resolveVolumePath(volumes, normalized);
+    if (resolved.relativePath !== "/") {
+      throw new FilesystemError(
+        "invalid-path",
+        "Statistics are available for volume roots only.",
+      );
+    }
+
+    const image = await this.#readVolumeImage(port, resolved.volume);
+    const format = detectFilesystemFormat(image) ?? resolved.volume.format;
+
+    if (format === "littlefs") {
+      const names = collectLittleFsNames(image);
+      return {
+        label: resolved.volume.label,
+        format: "littlefs",
+        totalBytes: resolved.volume.size,
+        usedBytes: null,
+        freeBytes: null,
+        fileCount: names.length,
+        directoryCount: 0,
+      };
+    }
+
+    const files = extractSpiffsFiles(image);
+    let usedBytes = 0;
+    const directories = new Set<string>();
+    for (const [filePath, data] of files) {
+      usedBytes += data.byteLength;
+      const parts = filePath.split("/").filter((part) => part.length > 0);
+      for (let index = 0; index < parts.length - 1; index += 1) {
+        directories.add(parts.slice(0, index + 1).join("/"));
+      }
+    }
+
+    return {
+      label: resolved.volume.label,
+      format: format === "spiffs" ? "spiffs" : "unknown",
+      totalBytes: resolved.volume.size,
+      usedBytes,
+      freeBytes: Math.max(0, resolved.volume.size - usedBytes),
+      fileCount: files.size,
+      directoryCount: directories.size,
+    };
+  }
+
+  async #mutateSpiffsMap(
+    port: EspToolSerialPort,
+    path: FilesystemPath,
+    options: EspFilesystemWriteOptions,
+    mutate: (files: Map<string, Uint8Array>, relativePath: string) => void,
+  ): Promise<void> {
+    const normalized = normalizePath(path);
+    if (normalized === null || normalized === "/") {
+      throw new FilesystemError(
+        "invalid-path",
+        `Invalid filesystem path "${path}".`,
+      );
+    }
+
+    this.#emit(options.onProgress, "preparing", "Resolving filesystem volume…", {
+      percent: 5,
+    });
+
+    const volumes = await this.#discoverVolumes(port);
+    const resolved = resolveVolumePath(volumes, normalized);
+
+    if (resolved.relativePath === "/") {
+      throw new FilesystemError(
+        "invalid-path",
+        "Select a file or folder inside a volume.",
+      );
+    }
+
+    this.#emit(options.onProgress, "reading", "Reading filesystem volume…", {
+      percent: 20,
+    });
+    const image = await this.#readVolumeImage(port, resolved.volume);
+    const format = detectFilesystemFormat(image) ?? resolved.volume.format;
+    if (format === "littlefs") {
+      throw new FilesystemError(
+        "unsupported",
+        `LittleFS write operations are not supported in this MVP for volume "${resolved.volume.label}".`,
+      );
+    }
+
+    const files = extractSpiffsFiles(image);
+    mutate(files, resolved.relativePath);
+
+    this.#emit(options.onProgress, "writing", "Rebuilding filesystem image…", {
+      percent: 45,
+    });
+
+    const pageSize = detectSpiffsPageSize(image);
+    const blockSize = 4096;
+    const alignedSize =
+      Math.ceil(resolved.volume.size / blockSize) * blockSize;
+    const nextImage = buildSpiffsImage(
+      files,
+      Math.max(alignedSize, blockSize),
+      pageSize,
+      blockSize,
+    ).subarray(0, resolved.volume.size);
+
+    this.#emit(options.onProgress, "writing", "Writing filesystem volume…", {
+      percent: 60,
+      bytesTransferred: 0,
+      totalBytes: nextImage.byteLength,
+    });
+
+    try {
+      await this.#esptool.flash(port, {
+        images: [
+          {
+            address: resolved.volume.address,
+            data: nextImage,
+          },
+        ],
+        eraseAll: false,
+        compress: true,
+        onWriteProgress: (_fileIndex, written, total) => {
+          const ratio = total > 0 ? written / total : 1;
+          this.#emit(
+            options.onProgress,
+            "writing",
+            "Writing filesystem volume…",
+            {
+              percent: Math.min(99, Math.round(60 + ratio * 35)),
+              bytesTransferred: written,
+              totalBytes: total,
+            },
+          );
+        },
+      });
+    } catch (error) {
+      if (error instanceof FilesystemError) {
+        throw error;
+      }
+      throw new FilesystemError(
+        "io-failure",
+        error instanceof Error
+          ? error.message
+          : "Failed to write the filesystem volume.",
+        { cause: error },
+      );
+    }
+
+    this.#emit(options.onProgress, "completed", "Filesystem update complete.", {
+      percent: 100,
     });
   }
 

@@ -4,10 +4,11 @@
 
 import type { FirmwareSourceKind } from "@/features/firmware/FirmwareManifest";
 import {
-  FIRMWARE_MANIFEST_SCHEMA_VERSION,
+  FIRMWARE_MANIFEST_SUPPORTED_SCHEMA_VERSIONS,
   isFirmwareCompatibleChipFamily,
   parseFirmwareAddress,
   type FirmwareCompatibleChipFamily,
+  type FirmwareFilesystemSupport,
   type FirmwareManifestDocument,
   type FirmwareManifestImageRef,
   type FirmwareManifestPackageKind,
@@ -26,6 +27,13 @@ const SOURCE_KINDS: readonly FirmwareSourceKind[] = [
 const PACKAGE_KINDS: readonly FirmwareManifestPackageKind[] = [
   "complete",
   "application-only",
+];
+
+const FILESYSTEM_SUPPORT: readonly FirmwareFilesystemSupport[] = [
+  "none",
+  "spiffs",
+  "littlefs",
+  "both",
 ];
 
 /**
@@ -89,7 +97,12 @@ function coerceDocument(
   }
 
   const schemaVersion = value.schemaVersion;
-  if (schemaVersion !== FIRMWARE_MANIFEST_SCHEMA_VERSION) {
+  if (
+    typeof schemaVersion !== "number" ||
+    !(FIRMWARE_MANIFEST_SUPPORTED_SCHEMA_VERSIONS as readonly number[]).includes(
+      schemaVersion,
+    )
+  ) {
     const rendered =
       typeof schemaVersion === "number" || typeof schemaVersion === "string"
         ? String(schemaVersion)
@@ -100,7 +113,7 @@ function coerceDocument(
       message:
         schemaVersion === undefined
           ? "Missing required field schemaVersion."
-          : `Unsupported firmware manifest schemaVersion ${rendered}; expected ${String(FIRMWARE_MANIFEST_SCHEMA_VERSION)}.`,
+          : `Unsupported firmware manifest schemaVersion ${rendered}; expected one of ${FIRMWARE_MANIFEST_SUPPORTED_SCHEMA_VERSIONS.join(", ")}.`,
     });
   }
 
@@ -114,6 +127,10 @@ function coerceDocument(
   const version = readOptionalString(value, "version", "/version", issues);
   const providerId = readOptionalString(value, "providerId", "/providerId", issues);
   const packageKind = readPackageKind(value.packageKind, issues);
+  const filesystemSupport = readFilesystemSupport(
+    value.filesystemSupport,
+    issues,
+  );
 
   if (
     id === undefined ||
@@ -129,8 +146,11 @@ function coerceDocument(
     return undefined;
   }
 
+  const normalizedSchemaVersion =
+    value.schemaVersion === 1 ? 1 : value.schemaVersion === 2 ? 2 : 2;
+
   return {
-    schemaVersion: FIRMWARE_MANIFEST_SCHEMA_VERSION,
+    schemaVersion: normalizedSchemaVersion,
     id,
     title,
     sourceKind,
@@ -140,6 +160,7 @@ function coerceDocument(
     ...(version !== undefined ? { version } : {}),
     ...(providerId !== undefined ? { providerId } : {}),
     ...(packageKind !== undefined ? { packageKind } : {}),
+    ...(filesystemSupport !== undefined ? { filesystemSupport } : {}),
   };
 }
 
@@ -359,12 +380,39 @@ function readPackageKind(
   return value;
 }
 
+function readFilesystemSupport(
+  value: unknown,
+  issues: FirmwareManifestValidationIssue[],
+): FirmwareFilesystemSupport | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value !== "string" || !isFilesystemSupport(value)) {
+    issues.push({
+      code: "invalid-type",
+      path: "/filesystemSupport",
+      message:
+        'Field filesystemSupport must be "none", "spiffs", "littlefs", or "both" when provided.',
+    });
+    return undefined;
+  }
+
+  return value;
+}
+
 function isSourceKind(value: string): value is FirmwareSourceKind {
   return (SOURCE_KINDS as readonly string[]).includes(value);
 }
 
 function isPackageKind(value: string): value is FirmwareManifestPackageKind {
   return (PACKAGE_KINDS as readonly string[]).includes(value);
+}
+
+function isFilesystemSupport(
+  value: string,
+): value is FirmwareFilesystemSupport {
+  return (FILESYSTEM_SUPPORT as readonly string[]).includes(value);
 }
 
 function readRequiredString(

@@ -11,14 +11,18 @@ import {
   type FlashInspectionReport,
 } from "@/features/flash/flash-inspection";
 import {
-  planFlashInstall,
-  type FlashInstallPlan,
-} from "@/features/flash/flash-strategy";
-import {
   FlashBusyError,
   FlashDeviceError,
   FlashError,
 } from "@/features/flash/errors";
+import {
+  buildProvisioningSummary,
+  planProvisioningInstall,
+  resolveProvisioningFilesystem,
+  type ProvisioningFilesystemChoice,
+  type ProvisioningMode,
+  type ProvisioningPlan,
+} from "@/features/flash/provisioning-mode";
 import {
   requiredFirmwarePackageImages,
   summarizeFirmwarePackage,
@@ -106,6 +110,14 @@ export type FlashUiErrorKind =
   | null;
 
 /**
+ * Pending overwrite / factory-erase confirmation from pre-flash planning.
+ */
+export type PendingProvisioningConfirm = {
+  readonly report: FlashInspectionReport;
+  readonly plan: Extract<ProvisioningPlan, { action: "confirm" }>;
+};
+
+/**
  * Flash UI workflow: one-click install over catalog + {@link FlashService.flash}.
  */
 export function useFlashWorkflow() {
@@ -124,6 +136,7 @@ export function useFlashWorkflow() {
     [githubProvider, localProvider],
   );
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const provisioningModeUserOverrideRef = useRef(false);
 
   const [firmwareSource, setFirmwareSource] =
     useState<FlashFirmwareSource>("builtin");
@@ -159,10 +172,15 @@ export function useFlashWorkflow() {
   const [inspectionNotice, setInspectionNotice] = useState<string | null>(
     null,
   );
-  const [pendingOverwrite, setPendingOverwrite] = useState<{
-    readonly report: FlashInspectionReport;
-    readonly plan: Extract<FlashInstallPlan, { action: "confirm" }>;
-  } | null>(null);
+  const [pendingOverwrite, setPendingOverwrite] =
+    useState<PendingProvisioningConfirm | null>(null);
+  const [lastInspectionReport, setLastInspectionReport] =
+    useState<FlashInspectionReport | null>(null);
+  const [provisioningMode, setProvisioningModeState] =
+    useState<ProvisioningMode>("update");
+  const [filesystemChoice, setFilesystemChoice] =
+    useState<ProvisioningFilesystemChoice>("littlefs");
+  const [factoryEraseTyped, setFactoryEraseTyped] = useState("");
   const [errorKind, setErrorKind] = useState<FlashUiErrorKind>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [providerErrorCode, setProviderErrorCode] = useState<
@@ -264,6 +282,14 @@ export function useFlashWorkflow() {
     setResult(null);
     setProgress(null);
     setInspectionNotice(null);
+    setPendingOverwrite(null);
+    setFactoryEraseTyped("");
+  }, []);
+
+  const setProvisioningMode = useCallback((mode: ProvisioningMode) => {
+    provisioningModeUserOverrideRef.current = true;
+    setProvisioningModeState(mode);
+    setFactoryEraseTyped("");
     setPendingOverwrite(null);
   }, []);
 
@@ -469,7 +495,7 @@ export function useFlashWorkflow() {
           error.code === "proxy-unavailable"
         ) {
           setErrorKind("proxy-unavailable");
-          setProviderErrorCode(error.code);
+          setProviderErrorCode("proxy-unavailable");
           setErrorMessage(STATIC_HOST_GITHUB_DOWNLOAD_MESSAGE);
           return;
         }
@@ -654,121 +680,163 @@ export function useFlashWorkflow() {
     });
   }, [resolved]);
 
-  const performFlash = useCallback(async () => {
-    if (!activeDevice || !resolved || resolved.images.length === 0) {
-      setErrorKind("no-file");
-      setErrorMessage(
-        "Select a firmware project and wait for it to load before installing.",
-      );
+  // Reset mode override when a different package is resolved, then prefer
+  // update vs reinstall from package kind (do not fight an in-package user pick).
+  useEffect(() => {
+    provisioningModeUserOverrideRef.current = false;
+  }, [resolved?.manifest.id, resolved?.manifest.providerId]);
+
+  useEffect(() => {
+    if (!packageSummary) {
       return;
     }
-
-    const summary =
-      packageSummary ??
-      summarizeFirmwarePackage({
-        ...(resolved.manifest.packageKind !== undefined
-          ? { packageKind: resolved.manifest.packageKind }
-          : {}),
-        images: resolved.images,
-      });
-
-    const required = requiredFirmwarePackageImages(summary);
-    const requiredIds = new Set(required.map((image) => image.id));
-    const imagesToFlash = resolved.images.filter((image) =>
-      requiredIds.has(image.id),
-    );
-
-    if (imagesToFlash.length === 0) {
-      setErrorKind("no-file");
-      setErrorMessage(
-        "This firmware package has no required images to write.",
-      );
+    if (provisioningModeUserOverrideRef.current) {
       return;
     }
-
-    const rolesById = new Map(
-      summary.images.map((image) => [image.id, image.role] as const),
+    setProvisioningModeState(
+      packageSummary.kind === "complete" ? "reinstall" : "update",
     );
+  }, [packageSummary]);
 
-    setIsFlashing(true);
-    setProgress({
-      stage: "preparing",
-      message: "Preparing install…",
-      percent: 0,
-    });
+  // Auto-resolve filesystem when the package declares a single layout.
+  useEffect(() => {
+    const support = resolved?.manifest.filesystemSupport;
+    if (support === "spiffs") {
+      setFilesystemChoice("spiffs");
+    } else if (support === "littlefs") {
+      setFilesystemChoice("littlefs");
+    }
+    // "both" / undefined / "none" — keep current choice (default littlefs).
+  }, [resolved?.manifest.filesystemSupport]);
 
-    try {
-      const flashResult = await service.flash({
-        deviceId: activeDevice.id,
-        images: imagesToFlash.map((image) => ({
-          data: image.data,
-          address: image.address,
-        })),
-        imageRoles: imagesToFlash.map(
-          (image) => rolesById.get(image.id) ?? "other",
-        ),
-        verifyAfterWrite: true,
-        resetAfter: true,
-        verifyBootableAfterReset: true,
-        onProgress: (next) => {
-          setProgress(next);
-        },
+  const resolvedFilesystemChoice = useMemo(
+    () =>
+      resolveProvisioningFilesystem(
+        resolved?.manifest.filesystemSupport,
+        filesystemChoice,
+      ),
+    [filesystemChoice, resolved?.manifest.filesystemSupport],
+  );
+
+  const performFlash = useCallback(
+    async (eraseAll = false) => {
+      if (!activeDevice || !resolved || resolved.images.length === 0) {
+        setErrorKind("no-file");
+        setErrorMessage(
+          "Select a firmware project and wait for it to load before installing.",
+        );
+        return;
+      }
+
+      const summary =
+        packageSummary ??
+        summarizeFirmwarePackage({
+          ...(resolved.manifest.packageKind !== undefined
+            ? { packageKind: resolved.manifest.packageKind }
+            : {}),
+          images: resolved.images,
+        });
+
+      const required = requiredFirmwarePackageImages(summary);
+      const requiredIds = new Set(required.map((image) => image.id));
+      const imagesToFlash = resolved.images.filter((image) =>
+        requiredIds.has(image.id),
+      );
+
+      if (imagesToFlash.length === 0) {
+        setErrorKind("no-file");
+        setErrorMessage(
+          "This firmware package has no required images to write.",
+        );
+        return;
+      }
+
+      const rolesById = new Map(
+        summary.images.map((image) => [image.id, image.role] as const),
+      );
+
+      setIsFlashing(true);
+      setProgress({
+        stage: "preparing",
+        message: "Preparing install…",
+        percent: 0,
       });
 
-      setResult(flashResult);
+      try {
+        const flashResult = await service.flash({
+          deviceId: activeDevice.id,
+          images: imagesToFlash.map((image) => ({
+            data: image.data,
+            address: image.address,
+          })),
+          imageRoles: imagesToFlash.map(
+            (image) => rolesById.get(image.id) ?? "other",
+          ),
+          eraseAll,
+          verifyAfterWrite: true,
+          resetAfter: true,
+          verifyBootableAfterReset: true,
+          onProgress: (next) => {
+            setProgress(next);
+          },
+        });
 
-      if (!flashResult.success) {
-        const err = flashResult.error;
-        if (err instanceof FlashBusyError) {
+        setResult(flashResult);
+
+        if (!flashResult.success) {
+          const err = flashResult.error;
+          if (err instanceof FlashBusyError) {
+            setErrorKind("busy");
+          } else if (err instanceof FlashDeviceError) {
+            setErrorKind("no-device");
+          } else {
+            setErrorKind("failed");
+          }
+          setErrorMessage(
+            flashResult.message ??
+              err?.message ??
+              "Install failed. Check the connection and try again.",
+          );
+        }
+      } catch (error) {
+        if (error instanceof FlashBusyError) {
           setErrorKind("busy");
-        } else if (err instanceof FlashDeviceError) {
+          setErrorMessage(error.message);
+        } else if (error instanceof FlashDeviceError) {
           setErrorKind("no-device");
+          setErrorMessage(error.message);
+        } else if (error instanceof FlashError) {
+          setErrorKind("failed");
+          setErrorMessage(error.message);
         } else {
           setErrorKind("failed");
+          setErrorMessage(
+            error instanceof Error
+              ? error.message
+              : "Install failed unexpectedly.",
+          );
         }
-        setErrorMessage(
-          flashResult.message ??
-            err?.message ??
-            "Install failed. Check the connection and try again.",
+        setProgress((previous) =>
+          previous
+            ? {
+                ...previous,
+                stage: "failed",
+                message:
+                  error instanceof Error ? error.message : "Install failed.",
+              }
+            : {
+                stage: "failed",
+                message:
+                  error instanceof Error ? error.message : "Install failed.",
+                percent: 100,
+              },
         );
+      } finally {
+        setIsFlashing(false);
       }
-    } catch (error) {
-      if (error instanceof FlashBusyError) {
-        setErrorKind("busy");
-        setErrorMessage(error.message);
-      } else if (error instanceof FlashDeviceError) {
-        setErrorKind("no-device");
-        setErrorMessage(error.message);
-      } else if (error instanceof FlashError) {
-        setErrorKind("failed");
-        setErrorMessage(error.message);
-      } else {
-        setErrorKind("failed");
-        setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Install failed unexpectedly.",
-        );
-      }
-      setProgress((previous) =>
-        previous
-          ? {
-              ...previous,
-              stage: "failed",
-              message:
-                error instanceof Error ? error.message : "Install failed.",
-            }
-          : {
-              stage: "failed",
-              message:
-                error instanceof Error ? error.message : "Install failed.",
-              percent: 100,
-            },
-      );
-    } finally {
-      setIsFlashing(false);
-    }
-  }, [activeDevice, packageSummary, resolved, service]);
+    },
+    [activeDevice, packageSummary, resolved, service],
+  );
 
   const startFlash = useCallback(async () => {
     clearFeedback();
@@ -806,8 +874,14 @@ export function useFlashWorkflow() {
           setProgress(next);
         },
       });
+      setLastInspectionReport(report);
 
-      const plan = planFlashInstall(report.outcome, packageSummary);
+      const plan = planProvisioningInstall(
+        provisioningMode,
+        report.outcome,
+        packageSummary,
+        resolvedFilesystemChoice,
+      );
 
       if (plan.action === "stop") {
         setErrorKind("blocked");
@@ -825,7 +899,7 @@ export function useFlashWorkflow() {
       }
 
       setInspectionNotice(plan.notice);
-      await performFlash();
+      await performFlash(plan.eraseAll);
     } catch (error) {
       setIsFlashing(false);
       if (error instanceof FlashBusyError) {
@@ -841,7 +915,13 @@ export function useFlashWorkflow() {
         const report = createFailedFlashInspectionReport(
           error instanceof Error ? error.message : undefined,
         );
-        const plan = planFlashInstall(report.outcome, packageSummary);
+        setLastInspectionReport(report);
+        const plan = planProvisioningInstall(
+          provisioningMode,
+          report.outcome,
+          packageSummary,
+          resolvedFilesystemChoice,
+        );
         if (plan.action === "confirm") {
           setPendingOverwrite({ report, plan });
         } else if (plan.action === "stop") {
@@ -857,7 +937,9 @@ export function useFlashWorkflow() {
     ensureSupport,
     packageSummary,
     performFlash,
+    provisioningMode,
     resolved,
+    resolvedFilesystemChoice,
     service,
   ]);
 
@@ -865,16 +947,25 @@ export function useFlashWorkflow() {
     if (!pendingOverwrite) {
       return;
     }
+    if (
+      pendingOverwrite.plan.requireTypedErase &&
+      factoryEraseTyped !== "ERASE"
+    ) {
+      return;
+    }
+    const eraseAll = pendingOverwrite.plan.eraseAll;
     setPendingOverwrite(null);
+    setFactoryEraseTyped("");
     setInspectionNotice(null);
     setErrorKind(null);
     setErrorMessage(null);
     setResult(null);
-    await performFlash();
-  }, [pendingOverwrite, performFlash]);
+    await performFlash(eraseAll);
+  }, [factoryEraseTyped, pendingOverwrite, performFlash]);
 
   const cancelOverwrite = useCallback(() => {
     setPendingOverwrite(null);
+    setFactoryEraseTyped("");
     setProgress(null);
     setInspectionNotice(null);
   }, []);
@@ -911,6 +1002,35 @@ export function useFlashWorkflow() {
     releaseSummary?.tagName ??
     null;
 
+  const provisioningSummary = useMemo(
+    () =>
+      buildProvisioningSummary({
+        mode: provisioningMode,
+        packageSummary,
+        chipLabel: activeDevice
+          ? formatChipLabel(activeDevice.chipFamily)
+          : (lastInspectionReport?.rawChipName ??
+            (lastInspectionReport?.chipFamily
+              ? formatChipLabel(lastInspectionReport.chipFamily)
+              : null)),
+        flashSize: lastInspectionReport?.flashSize ?? null,
+        deviceOutcome: lastInspectionReport?.outcome ?? null,
+        currentFilesystem: null,
+        selectedFilesystem: resolvedFilesystemChoice,
+        projectLabel: firmwareProjectLabel,
+        versionLabel: firmwareVersionLabel,
+      }),
+    [
+      activeDevice,
+      firmwareProjectLabel,
+      firmwareVersionLabel,
+      lastInspectionReport,
+      packageSummary,
+      provisioningMode,
+      resolvedFilesystemChoice,
+    ],
+  );
+
   return {
     activeDevice,
     webSerialSupported,
@@ -934,6 +1054,14 @@ export function useFlashWorkflow() {
     result,
     inspectionNotice,
     pendingOverwrite,
+    lastInspectionReport,
+    provisioningMode,
+    setProvisioningMode,
+    filesystemChoice,
+    setFilesystemChoice,
+    factoryEraseTyped,
+    setFactoryEraseTyped,
+    provisioningSummary,
     errorKind,
     errorMessage,
     providerErrorCode,

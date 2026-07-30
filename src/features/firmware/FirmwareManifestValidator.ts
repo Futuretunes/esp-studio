@@ -5,9 +5,10 @@
 import type { FirmwareImage } from "@/features/firmware/FirmwareImage";
 import type { FirmwareSourceKind } from "@/features/firmware/FirmwareManifest";
 import {
-  FIRMWARE_MANIFEST_SCHEMA_VERSION,
+  FIRMWARE_MANIFEST_SUPPORTED_SCHEMA_VERSIONS,
   isFirmwareCompatibleChipFamily,
   type FirmwareCompatibleChipFamily,
+  type FirmwareFilesystemSupport,
   type FirmwareManifestDocument,
   type FirmwareManifestImageRef,
   type FirmwareManifestPackageKind,
@@ -27,6 +28,13 @@ const PACKAGE_KINDS: readonly FirmwareManifestPackageKind[] = [
   "application-only",
 ];
 
+const FILESYSTEM_SUPPORT: readonly FirmwareFilesystemSupport[] = [
+  "none",
+  "spiffs",
+  "littlefs",
+  "both",
+];
+
 /**
  * Looser document shape accepted by the validator before narrowing.
  */
@@ -39,6 +47,7 @@ export type FirmwareManifestDocumentInput = {
   readonly sourceKind: string;
   readonly providerId?: string;
   readonly packageKind?: string;
+  readonly filesystemSupport?: string;
   readonly chipFamilies: readonly string[];
   readonly images: readonly {
     readonly id: string;
@@ -77,11 +86,15 @@ export function validateFirmwareManifestDocument(
 ): FirmwareManifestValidationResult {
   const issues: FirmwareManifestValidationIssue[] = [];
 
-  if (document.schemaVersion !== FIRMWARE_MANIFEST_SCHEMA_VERSION) {
+  if (
+    !(FIRMWARE_MANIFEST_SUPPORTED_SCHEMA_VERSIONS as readonly number[]).includes(
+      document.schemaVersion,
+    )
+  ) {
     issues.push({
       code: "unsupported-schema-version",
       path: "/schemaVersion",
-      message: `Unsupported firmware manifest schemaVersion ${String(document.schemaVersion)}; expected ${String(FIRMWARE_MANIFEST_SCHEMA_VERSION)}.`,
+      message: `Unsupported firmware manifest schemaVersion ${String(document.schemaVersion)}; expected one of ${FIRMWARE_MANIFEST_SUPPORTED_SCHEMA_VERSIONS.join(", ")}.`,
     });
   }
 
@@ -164,12 +177,27 @@ export function validateFirmwareManifestDocument(
     }
   }
 
+  let filesystemSupport: FirmwareFilesystemSupport | undefined;
+  if (document.filesystemSupport !== undefined) {
+    if (!isFilesystemSupport(document.filesystemSupport)) {
+      issues.push({
+        code: "invalid-type",
+        path: "/filesystemSupport",
+        message: `Invalid filesystemSupport "${document.filesystemSupport}".`,
+      });
+    } else {
+      filesystemSupport = document.filesystemSupport;
+    }
+  }
+
   if (issues.length > 0 || !isSourceKind(document.sourceKind)) {
     return { ok: false, issues };
   }
 
+  const schemaVersion = document.schemaVersion === 1 ? 1 : 2;
+
   const normalized: FirmwareManifestDocument = {
-    schemaVersion: FIRMWARE_MANIFEST_SCHEMA_VERSION,
+    schemaVersion,
     id: document.id,
     title: document.title,
     sourceKind: document.sourceKind,
@@ -183,6 +211,7 @@ export function validateFirmwareManifestDocument(
       ? { providerId: document.providerId }
       : {}),
     ...(packageKind !== undefined ? { packageKind } : {}),
+    ...(filesystemSupport !== undefined ? { filesystemSupport } : {}),
   };
 
   return { ok: true, document: normalized };
@@ -347,4 +376,10 @@ function isSourceKind(value: string): value is FirmwareSourceKind {
 
 function isPackageKind(value: string): value is FirmwareManifestPackageKind {
   return (PACKAGE_KINDS as readonly string[]).includes(value);
+}
+
+function isFilesystemSupport(
+  value: string,
+): value is FirmwareFilesystemSupport {
+  return (FILESYSTEM_SUPPORT as readonly string[]).includes(value);
 }

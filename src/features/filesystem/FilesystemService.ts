@@ -135,6 +135,70 @@ export class FilesystemService {
     });
   }
 
+  /**
+   * Deletes a file or recursively deletes files under a directory prefix.
+   */
+  async deletePath(
+    deviceId: string,
+    path: FilesystemPath,
+    options: FilesystemUploadOptions = {},
+  ): Promise<void> {
+    await this.#withOwnership(deviceId, async (port) => {
+      await this.#adapter.deletePath(port, path, {
+        ...(options.onProgress !== undefined
+          ? { onProgress: options.onProgress }
+          : {}),
+      });
+    });
+  }
+
+  /**
+   * Renames a file within the same volume.
+   */
+  async renamePath(
+    deviceId: string,
+    fromPath: FilesystemPath,
+    toPath: FilesystemPath,
+    options: FilesystemUploadOptions = {},
+  ): Promise<void> {
+    await this.#withOwnership(deviceId, async (port) => {
+      await this.#adapter.renamePath(port, fromPath, toPath, {
+        ...(options.overwrite !== undefined
+          ? { overwrite: options.overwrite }
+          : {}),
+        ...(options.onProgress !== undefined
+          ? { onProgress: options.onProgress }
+          : {}),
+      });
+    });
+  }
+
+  /**
+   * Creates a directory marker on SPIFFS volumes.
+   */
+  async createDirectory(
+    deviceId: string,
+    path: FilesystemPath,
+    options: FilesystemUploadOptions = {},
+  ): Promise<void> {
+    await this.#withOwnership(deviceId, async (port) => {
+      await this.#adapter.createDirectory(port, path, {
+        ...(options.onProgress !== undefined
+          ? { onProgress: options.onProgress }
+          : {}),
+      });
+    });
+  }
+
+  /**
+   * Returns volume statistics for a volume root path.
+   */
+  async getVolumeStats(deviceId: string, volumePath: FilesystemPath) {
+    return this.#withOwnership(deviceId, async (port) => {
+      return this.#adapter.getVolumeStats(port, volumePath);
+    });
+  }
+
   async #withOwnership<T>(
     deviceId: string,
     run: (
