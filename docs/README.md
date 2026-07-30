@@ -17,6 +17,7 @@ Internal product and architecture documentation.
 | Serial Monitor (Minimal)  | [features/serial-monitor.md](./features/serial-monitor.md)               |
 | ESP Identification        | [features/esp-identification.md](./features/esp-identification.md)       |
 | Flash Service (MVP)       | [features/flash-service.md](./features/flash-service.md)                 |
+| Flash UI (MVP)            | [features/flash-ui.md](./features/flash-ui.md)                           |
 | Feature template          | [_templates/feature.md](./_templates/feature.md)                         |
 
 ## Process

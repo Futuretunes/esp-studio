@@ -1,30 +1,28 @@
 # Current Focus
 
-**Active milestone:** Flash Service (MVP)
+**Active milestone:** Flash UI (MVP)
 
 ## Why this next
 
-Identification established the esptool adapter and ownership pattern. Flash UI needs a reusable orchestration service (`identify` / `erase` / `flash` / `verify` / `reset`) before any page, firmware library, or progress dialog exists.
+`FlashService` is ready. Users need a first complete local `.bin` flashing workflow with live progress and friendly errors—before a firmware library or OTA exists.
 
 ## In scope
 
-1. `docs/features/flash-service.md`
-2. `EspToolAdapter` erase / write / verify / reset (plus identify) behind `src/adapters/esptool`
-3. `src/features/flash` service types: progress, options, result, errors
-4. Ownership owner id `"flash-service"` with guaranteed release
-5. Structured `FlashProgress` stages for future React consumers
+1. `docs/features/flash-ui.md`
+2. Flash page: device info, chip, `.bin` picker, size, Flash button, progress, result
+3. Wire to existing `FlashService` with live `FlashProgress`
+4. Friendly error states (no device, unsupported, busy, flash/verify failed)
 
 ## Out of scope
 
-Flash page UI, firmware library, downloads, OTA, filesystem, plugin system, progress dialogs, terminal output
+Firmware library, GitHub Releases, OTA, multiple partitions, bootloader selection, partition table editing, settings
 
 ## Next up
 
-**Flash UI** — thin page that calls `FlashService` and renders `FlashProgress`.
+**Firmware Library (MVP)** — catalog local/remote images for one-click install via `FlashService`.
 
 ## Related documents
 
+- [Flash UI](../features/flash-ui.md)
 - [Flash Service](../features/flash-service.md)
-- [ESP Identification](../features/esp-identification.md)
-- [Communication Session](../features/communication-session.md)
 - [Backlog](./backlog.md)
