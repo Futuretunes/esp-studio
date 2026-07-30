@@ -1,0 +1,19 @@
+# ESP Studio Documentation
+
+Internal product and architecture documentation.
+
+| Area                      | Path                                                             |
+| ------------------------- | ---------------------------------------------------------------- |
+| Architecture overview     | [architecture/overview.md](./architecture/overview.md)           |
+| Device Layer architecture | [architecture/device-layer.md](./architecture/device-layer.md)   |
+| Plugin system             | [architecture/plugin-system.md](./architecture/plugin-system.md) |
+| Roadmap backlog           | [roadmap/backlog.md](./roadmap/backlog.md)                       |
+| Current focus             | [roadmap/current.md](./roadmap/current.md)                       |
+| Device Layer feature      | [features/device-layer.md](./features/device-layer.md)           |
+| Feature template          | [_templates/feature.md](./_templates/feature.md)                 |
+
+## Process
+
+1. Document first (`docs/features/<name>.md` from the template).
+2. Implement only after the feature doc is complete.
+3. Do not overwrite unrelated existing documentation.
