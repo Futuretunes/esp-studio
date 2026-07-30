@@ -1,29 +1,27 @@
 # Current Focus
 
-**Active milestone:** ESP Identification
+**Active milestone:** One-click Install (next)
 
 ## Why this next
 
-Flash Engine needs a real chip identity. Identification must run under exclusive `CommunicationSession` ownership, keep `esptool-js` behind an adapter, and update Device + Devices UI—without implementing flashing yet.
+GitHub Firmware Provider is in place. The next UX step is fewer manual clicks between selecting a catalog entry and flashing through `FlashService`.
 
-## In scope
+## Just completed
 
-1. `docs/features/esp-identification.md`
-2. `src/adapters/esptool` chip detect adapter
-3. `src/features/identification` orchestration
-4. Devices UI chip label (`Chip: ESP32-S3` / `Unknown`)
-5. Additive `DeviceManager.updateDeviceInfo`
+**GitHub Firmware Provider (MVP)** — remote `FirmwareProvider` for GitHub Releases with manifest discovery / `.bin` fallback and Flash UI source switch.
+
+## In scope (One-click Install)
+
+1. Streamlined Flash / library flow over `FirmwareCatalog` + `FlashService`
+2. Keep providers pluggable; no GitHub-specific UI beyond the existing source
 
 ## Out of scope
 
-Firmware flashing, erase, write, verify, filesystem, OTA, firmware library
-
-## Next up
-
-**Flash Engine** — reuse the esptool adapter boundary; acquire `"flash-engine"` ownership.
+OTA, ESP Web Tools provider, GitHub auth, auto-update
 
 ## Related documents
 
-- [ESP Identification](../features/esp-identification.md)
-- [Communication Session](../features/communication-session.md)
+- [GitHub Firmware Provider](../features/github-firmware-provider.md)
+- [Firmware Catalog](../features/firmware-catalog.md)
+- [Flash UI](../features/flash-ui.md)
 - [Backlog](./backlog.md)

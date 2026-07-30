@@ -11,10 +11,14 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 | 5        | Device Discovery | ✅     | UX + APIs to list/request devices across providers  |
 | 6        | Transport IO     | ✅     | Raw `Uint8Array` stream contract for all transports |
 | 7        | Communication    | ✅     | Single-owner session over `TransportIo`             |
-| 8        | ESP Identification | 🟡     | Chip detect via esptool adapter; Device + UI update |
-| 9        | Flash Engine       | ⬜     | Flash orchestration reusing esptool adapter         |
+| 8        | ESP Identification | ✅     | Chip detect via esptool adapter; Device + UI update |
+| 9        | Flash Service      | ✅     | Orchestration (`FlashService`) over esptool adapter |
+| 9a       | Flash UI           | ✅     | Local `.bin` flash page + live progress             |
+| 9b       | Firmware Catalog   | ✅     | Multi-provider catalog; LocalFirmwareProvider only  |
+| 9c       | Firmware Manifest  | ✅     | Canonical JSON schema + parser/validator            |
+| 9d       | GitHub Firmware    | ✅     | First remote FirmwareProvider (Releases + Flash UI) |
 | 10       | Firmware Plugins   | ⬜     | Installer contribution points + first plugins       |
-| 11       | Firmware Library   | ⬜     | Catalog, versions, local/remote artifacts           |
+| 11       | Firmware Library   | ⬜     | Catalog browser + one-click install                 |
 | 12       | Serial Monitor     | ✅     | Minimal UTF-8 console over `CommunicationSession`   |
 | 13       | Filesystem         | ⬜     | SPIFFS / LittleFS browser                           |
 | 14       | OTA                | ⬜     | Network update flows                                |
@@ -61,15 +65,36 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 - `CommunicationSession` owns a `TransportIo` with exclusive `CommunicationLock`.
 - Prevents concurrent readers/writers; forwards raw bytes only.
 
-### ESP Identification 🟡
+### ESP Identification ✅
 
 - Detect chip family under `"chip-identification"` ownership.
 - Isolate `esptool-js` in `src/adapters/esptool`; update Device + Devices UI.
 
-### Flash Engine ⬜
+### Flash Service ✅
 
-- Progress events, abort, verification hooks.
-- Reuse `src/adapters/esptool`; acquire `"flash-engine"` ownership.
+- `FlashService` identify / erase / flash / verify / reset with `"flash-service"` ownership.
+- Reusable `FlashProgress` stages for UI consumers.
+
+### Flash UI ✅
+
+- Local `.bin` flash page with live progress and friendly errors.
+- Selects firmware via `FirmwareCatalog` (“Local file…” → picker).
+
+### Firmware Catalog ✅
+
+- Multi-provider `FirmwareCatalog`; MVP ships `LocalFirmwareProvider` only.
+- Flash UI consumes catalog entries.
+
+### Firmware Manifest ✅
+
+- Canonical `schemaVersion: 1` JSON document, parser, and typed validator.
+- Contract between providers and FlashService.
+
+### GitHub Firmware Provider ✅
+
+- `GitHubFirmwareProvider` loads latest release into `FirmwareCatalog`.
+- Manifest discovery + `.bin` fallback; lazy download on `resolve()`.
+- Flash UI: Local File vs GitHub Repository (persisted slug).
 
 ### Firmware Plugins ⬜
 
@@ -77,7 +102,7 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 
 ### Firmware Library ⬜
 
-- Metadata model, import/export, versioning.
+- Library page browsing the catalog + one-click install.
 
 ### Serial Monitor ✅
 
