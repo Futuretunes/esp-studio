@@ -83,10 +83,6 @@ pnpm build
 
 Ensure `build.json` is present next to `index.html`.
 
-### GitHub firmware downloads on static hosts
-
-`pnpm build` output is a static SPA. The Vite middleware at `/__esp-studio/github-asset` exists only for `pnpm dev` / `pnpm preview`. Plain FTP/`dist/` hosting therefore cannot download GitHub release `.bin` assets in the browser (CDN CORS). Flash **Local File** still works. To enable built-in / GitHub install on a deployed host, put an equivalent same-origin proxy in front of the SPA (same path and allow-list as `vite.github-asset-proxy.ts`). Without it, the Flash UI shows a `proxy-unavailable` explanation instead of a bare HTTP 404.
-
 ## Rollback
 
 1. Identify the last known-good commit (About page commit hash or GitHub Actions run).
