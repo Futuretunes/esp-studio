@@ -11,6 +11,11 @@ export function FlashFeature(): JSX.Element {
   const {
     activeDevice,
     webSerialSupported,
+    firmwareSource,
+    repositorySlug,
+    releaseSummary,
+    isLoadingGithub,
+    isResolving,
     catalogEntries,
     selectionKey,
     resolved,
@@ -23,6 +28,9 @@ export function FlashFeature(): JSX.Element {
     flashAddress,
     fileInputRef,
     ensureSupport,
+    setFirmwareSource,
+    setRepositorySlug,
+    loadGitHubRepository,
     selectCatalogEntry,
     selectFirmwareFile,
     clearFirmware,
@@ -42,6 +50,11 @@ export function FlashFeature(): JSX.Element {
       <FlashPanel
         activeDevice={activeDevice}
         webSerialSupported={webSerialSupported}
+        firmwareSource={firmwareSource}
+        repositorySlug={repositorySlug}
+        releaseSummary={releaseSummary}
+        isLoadingGithub={isLoadingGithub}
+        isResolving={isResolving}
         catalogEntries={catalogEntries}
         selectionKey={selectionKey}
         resolved={resolved}
@@ -53,6 +66,11 @@ export function FlashFeature(): JSX.Element {
         errorMessage={errorMessage}
         flashAddress={flashAddress}
         fileInputRef={fileInputRef}
+        onFirmwareSourceChange={setFirmwareSource}
+        onRepositorySlugChange={setRepositorySlug}
+        onLoadGitHubRepository={() => {
+          void loadGitHubRepository();
+        }}
         onSelectCatalogEntry={selectCatalogEntry}
         onSelectFile={(file) => {
           void selectFirmwareFile(file);

@@ -14,12 +14,23 @@ import type { FirmwareManifest } from "@/features/firmware/FirmwareManifest";
 export type FirmwareCatalogAction = "pick-local-file";
 
 /**
+ * Whether a catalog row came from a parsed manifest document or was synthesized.
+ */
+export type FirmwareCatalogOrigin = "manifest" | "generated";
+
+/**
  * A selectable row returned by {@link FirmwareProvider.list}.
  */
 export type FirmwareCatalogEntry = {
   readonly manifest: FirmwareManifest;
   /** Optional UI action for interactive providers. */
   readonly action?: FirmwareCatalogAction;
+  /**
+   * Optional origin marker (for example GitHub `.bin` fallback entries).
+   *
+   * Omitted for providers that do not distinguish origins.
+   */
+  readonly origin?: FirmwareCatalogOrigin;
 };
 
 /**

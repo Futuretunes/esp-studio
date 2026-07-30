@@ -39,6 +39,7 @@ export {
 export type {
   FirmwareCatalogAction,
   FirmwareCatalogEntry,
+  FirmwareCatalogOrigin,
   FirmwareProvider,
   FirmwareResolvedPackage,
 } from "./FirmwareProvider";
@@ -47,4 +48,19 @@ export {
   LOCAL_FIRMWARE_PROVIDER_ID,
   LocalFirmwareProvider,
 } from "./LocalFirmwareProvider";
+export {
+  GITHUB_FIRMWARE_PROVIDER_ID,
+  GITHUB_MANIFEST_FILENAMES,
+  GITHUB_REPOSITORY_STORAGE_KEY,
+  GitHubFirmwareProvider,
+  GitHubFirmwareProviderError,
+  formatGitHubRepositorySlug,
+  isGitHubFirmwareProviderError,
+  parseGitHubRepositorySlug,
+  persistGitHubRepository,
+  readPersistedGitHubRepository,
+  type GitHubFirmwareProviderErrorCode,
+  type GitHubReleaseSummary,
+  type GitHubRepositoryRef,
+} from "./providers/github";
 export { FirmwareFeature } from "./firmware-page";

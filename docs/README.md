@@ -20,6 +20,7 @@ Internal product and architecture documentation.
 | Flash UI (MVP)            | [features/flash-ui.md](./features/flash-ui.md)                           |
 | Firmware Catalog (MVP)    | [features/firmware-catalog.md](./features/firmware-catalog.md)           |
 | Firmware Manifest         | [features/firmware-manifest.md](./features/firmware-manifest.md)         |
+| GitHub Firmware Provider  | [features/github-firmware-provider.md](./features/github-firmware-provider.md) |
 | Feature template          | [_templates/feature.md](./_templates/feature.md)                         |
 
 ## Process

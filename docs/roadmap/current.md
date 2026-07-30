@@ -1,29 +1,27 @@
 # Current Focus
 
-**Active milestone:** Firmware Manifest
+**Active milestone:** One-click Install (next)
 
 ## Why this next
 
-The catalog needs a versioned, validatable JSON contract between providers and FlashService before GitHub / ESP Web Tools adapters can share one format.
+GitHub Firmware Provider is in place. The next UX step is fewer manual clicks between selecting a catalog entry and flashing through `FlashService`.
 
-## In scope
+## Just completed
 
-1. `docs/features/firmware-manifest.md`
-2. Canonical `schemaVersion: 1` document types
-3. Parser + validator with typed issues (required fields, duplicate addresses, chip families, image existence)
-4. Catalog summary projection helper
+**GitHub Firmware Provider (MVP)** — remote `FirmwareProvider` for GitHub Releases with manifest discovery / `.bin` fallback and Flash UI source switch.
+
+## In scope (One-click Install)
+
+1. Streamlined Flash / library flow over `FirmwareCatalog` + `FlashService`
+2. Keep providers pluggable; no GitHub-specific UI beyond the existing source
 
 ## Out of scope
 
-GitHub integration, downloads, remote manifest fetching, one-click install, SHA verify UI
-
-## Next up
-
-**GitHub Firmware Provider** — emit/consume `FirmwareManifestDocument`; download assets on resolve.
+OTA, ESP Web Tools provider, GitHub auth, auto-update
 
 ## Related documents
 
-- [Firmware Manifest](../features/firmware-manifest.md)
+- [GitHub Firmware Provider](../features/github-firmware-provider.md)
 - [Firmware Catalog](../features/firmware-catalog.md)
-- [Flash Service](../features/flash-service.md)
+- [Flash UI](../features/flash-ui.md)
 - [Backlog](./backlog.md)
