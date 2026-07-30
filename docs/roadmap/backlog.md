@@ -54,6 +54,11 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 - Web Serial implementation via `WebSerialTransportIo` on `DeviceConnection.io`.
 - Binary `Uint8Array` only; no Serial Monitor UI.
 
+### Communication Session ✅
+
+- `CommunicationSession` owns a `TransportIo` with exclusive `CommunicationLock`.
+- Prevents concurrent readers/writers; forwards raw bytes only.
+
 ### Flash Engine ⬜
 
 - Progress events, abort, verification hooks.
@@ -69,7 +74,7 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 
 ### Serial Monitor ⬜
 
-- Consume `TransportIo` for read/write; UTF-8 decode only in the UI layer.
+- Acquire `CommunicationSession` ownership; consume raw bytes; UTF-8 decode only in the UI layer.
 - Baud configuration via capabilities, log buffer, export.
 
 ### Filesystem ⬜

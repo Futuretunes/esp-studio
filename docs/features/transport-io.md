@@ -190,7 +190,7 @@ interface DeviceConnection {
 - Concurrent read cancellation via `AbortSignal` wired to reader cancel.
 - Flow-control metrics / high-water marks.
 - Half-duplex modes for flashing bootloaders.
-- Shared IO session guard so Monitor and Flash cannot fight for the same reader.
+- Shared IO session guard so Monitor and Flash cannot fight for the same reader — see [Communication Session](./communication-session.md).
 
 ## TODO Checklist
 
