@@ -189,7 +189,7 @@ Exact error classes may expand later without breaking successful-path APIs.
 - [x] No browser APIs in the Device Layer.
 - [x] `DeviceManager` supports provider registration and connect/disconnect via DI.
 - [x] Future providers can be added without changing consumer import sites.
-- [ ] `pnpm lint`, `pnpm typecheck`, and `pnpm build` pass.
+- [x] `pnpm lint`, `pnpm typecheck`, and `pnpm build` pass.
 
 ## Future Improvements
 
@@ -215,8 +215,8 @@ Exact error classes may expand later without breaking successful-path APIs.
 - [x] Interfaces designed
 - [x] Implementation complete
 - [x] API is fake-provider-friendly (unit tests can register an in-memory `DeviceProvider`)
-- [ ] `pnpm lint` / `pnpm typecheck` / `pnpm build` pass
-- [ ] Roadmap `current.md` / `backlog.md` reflect status after implementation
+- [x] `pnpm lint` / `pnpm typecheck` / `pnpm build` pass
+- [x] Roadmap `current.md` / `backlog.md` reflect status after implementation
 
 ## Examples
 
