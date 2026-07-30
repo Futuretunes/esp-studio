@@ -26,11 +26,13 @@ See also:
 
 ## Purpose
 
-- Expose `FlashService` APIs: `identify`, `erase`, `flash`, `verify`, `reset`.
+- Expose `FlashService` APIs: `identify`, `erase`, `inspectPreFlash`, `flash`, `verify`, `reset`.
 - Keep `esptool-js` behind `EspToolAdapter` (`src/adapters/esptool`).
 - Acquire / release `CommunicationSession` with owner `"flash-service"` (never leave a lock behind).
-- Emit reusable `FlashProgress` stages for future UI.
+- Emit reusable `FlashProgress` stages for future UI (includes `inspecting`).
 - Remain callable from any future Flash page, CLI helper, or test harness.
+
+Pre-write safety: see [Pre-Flash Firmware Inspection](./pre-flash-inspection.md).
 
 ## Architecture
 

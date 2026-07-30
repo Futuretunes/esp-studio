@@ -19,6 +19,15 @@ import {
   type DeviceManager,
   type DeviceOperationLock,
 } from "@/core/device";
+import {
+  FLASH_INSPECTION_SAMPLE_ADDRESSES,
+  FLASH_INSPECTION_SAMPLE_LENGTH,
+  classifyFlashRegionBytes,
+  createFailedFlashInspectionReport,
+  createFlashInspectionReport,
+  formatFlashInspectionMessage,
+  type FlashInspectionReport,
+} from "@/features/flash/flash-inspection";
 import { FLASH_SERVICE_OWNER_ID } from "@/features/flash/constants";
 import {
   FlashBusyError,
@@ -132,6 +141,137 @@ export class FlashService {
         message: "Flash erased",
       } satisfies FlashResult;
     });
+  }
+
+  /**
+   * Samples flash before a write and classifies blank / existing / unknown.
+   *
+   * Reuses {@link EspToolAdapter.inspectFlash} (read + identify + optional flash
+   * size) in one bootloader session. Does not invent installed firmware identity.
+   *
+   * @param deviceId - Connected device id
+   * @param options - Optional progress / baud overrides
+   */
+  async inspectPreFlash(
+    deviceId: string,
+    options: FlashOperationOptions = {},
+  ): Promise<FlashInspectionReport> {
+    this.#emit(options.onProgress, "preparing", "Preparing flash inspection…", {
+      percent: 0,
+    });
+
+    let lock: CommunicationLock | undefined;
+    let operationLock: DeviceOperationLock | undefined;
+    const adapter =
+      options.baudRate !== undefined
+        ? new EspToolAdapter(options.baudRate)
+        : this.#adapter;
+
+    try {
+      const target = this.#resolveTarget(deviceId);
+      operationLock = target.operationLock;
+
+      try {
+        lock = operationLock.claim(FLASH_SERVICE_OWNER_ID);
+      } catch (error) {
+        if (error instanceof CommunicationOwnershipError) {
+          throw new FlashBusyError(
+            formatDeviceBusyMessage(operationLock.ownerId, "flash"),
+            { cause: error },
+          );
+        }
+        throw error;
+      }
+
+      this.#emit(
+        options.onProgress,
+        "inspecting",
+        "Inspecting flash contents…",
+        { percent: 25 },
+      );
+
+      const inspection = await adapter.inspectFlash(
+        target.port,
+        FLASH_INSPECTION_SAMPLE_ADDRESSES,
+        FLASH_INSPECTION_SAMPLE_LENGTH,
+      );
+
+      this.#manager.updateDeviceInfo(deviceId, {
+        chipFamily: inspection.chipFamily,
+        metadata: {
+          ...(this.#manager.getDevice(deviceId)?.info.metadata ?? {}),
+          ...(inspection.rawName !== undefined
+            ? { espToolChipName: inspection.rawName }
+            : {}),
+          ...(inspection.flashSize !== undefined
+            ? { espToolFlashSize: inspection.flashSize }
+            : {}),
+        },
+      });
+
+      const regions = inspection.regions.map((region) => ({
+        address: region.address,
+        status: classifyFlashRegionBytes(region.bytes),
+      }));
+
+      const report = createFlashInspectionReport(regions, {
+        chipFamily: inspection.chipFamily,
+        ...(inspection.rawName !== undefined
+          ? { rawChipName: inspection.rawName }
+          : {}),
+        ...(inspection.flashSize !== undefined
+          ? { flashSize: inspection.flashSize }
+          : {}),
+      });
+
+      this.#emit(options.onProgress, "completed", report.message, {
+        percent: 100,
+      });
+      return report;
+    } catch (error) {
+      const flashError = this.#normalizeError(error);
+      this.#emit(options.onProgress, "failed", flashError.message, {
+        percent: 100,
+      });
+
+      // Ownership / missing-device errors surface as UI errors, not overwrite prompts.
+      if (
+        flashError instanceof FlashBusyError ||
+        flashError instanceof FlashDeviceError
+      ) {
+        throw flashError;
+      }
+
+      const device = this.#manager.getDevice(deviceId);
+      const metadata = device?.info.metadata ?? {};
+      const rawChipName =
+        typeof metadata.espToolChipName === "string"
+          ? metadata.espToolChipName
+          : undefined;
+      const flashSize =
+        typeof metadata.espToolFlashSize === "string"
+          ? metadata.espToolFlashSize
+          : undefined;
+
+      return createFailedFlashInspectionReport(
+        `${formatFlashInspectionMessage("failed")} (${flashError.message})`,
+        {
+          ...(device?.info.chipFamily !== undefined
+            ? { chipFamily: device.info.chipFamily }
+            : {}),
+          ...(rawChipName !== undefined ? { rawChipName } : {}),
+          ...(flashSize !== undefined ? { flashSize } : {}),
+        },
+      );
+    } finally {
+      if (operationLock !== undefined && lock !== undefined) {
+        try {
+          operationLock.release(lock);
+        } catch {
+          /* Never leave an unreleased lock intentionally; ignore double-release. */
+        }
+      }
+    }
   }
 
   /**

@@ -27,6 +27,7 @@ import { formatFlashAddress } from "@/features/flash/format-flash-address";
 import { formatFirmwareSize } from "@/features/flash/format-firmware-size";
 import type { FlashProgress } from "@/features/flash/FlashProgress";
 import type { FlashResult } from "@/features/flash/FlashResult";
+import type { FlashInspectionReport } from "@/features/flash/flash-inspection";
 import {
   catalogSelectionKey,
   type FlashFirmwareSource,
@@ -60,6 +61,8 @@ type FlashPanelProps = {
   isFlashing: boolean;
   progress: FlashProgress | null;
   result: FlashResult | null;
+  inspectionNotice: string | null;
+  pendingOverwrite: FlashInspectionReport | null;
   errorKind: FlashUiErrorKind;
   errorMessage: string | null;
   githubReleasesHref: string | null;
@@ -77,6 +80,8 @@ type FlashPanelProps = {
   onSelectFile: (file: File | null) => void;
   onClearFile: () => void;
   onInstall: () => void;
+  onConfirmOverwrite: () => void;
+  onCancelOverwrite: () => void;
 };
 
 const BUILTIN_ICONS: Readonly<Record<string, LucideIcon>> = {
@@ -92,6 +97,8 @@ function stageLabel(stage: FlashProgress["stage"]): string {
       return "Preparing";
     case "connecting":
       return "Connecting";
+    case "inspecting":
+      return "Inspecting";
     case "erasing":
       return "Erasing";
     case "writing":
@@ -104,6 +111,21 @@ function stageLabel(stage: FlashProgress["stage"]): string {
       return "Completed";
     case "failed":
       return "Failed";
+  }
+}
+
+function overwriteDialogTitle(
+  outcome: FlashInspectionReport["outcome"],
+): string {
+  switch (outcome) {
+    case "existing":
+      return "Existing firmware detected";
+    case "unknown":
+      return "Firmware could not be identified";
+    case "failed":
+      return "Flash inspection failed";
+    case "blank":
+      return "Device appears empty";
   }
 }
 
@@ -159,6 +181,8 @@ export function FlashPanel({
   isFlashing,
   progress,
   result,
+  inspectionNotice,
+  pendingOverwrite,
   errorKind,
   errorMessage,
   githubReleasesHref,
@@ -176,9 +200,12 @@ export function FlashPanel({
   onSelectFile,
   onClearFile,
   onInstall,
+  onConfirmOverwrite,
+  onCancelOverwrite,
 }: FlashPanelProps): JSX.Element {
   const unsupported = webSerialSupported === false;
-  const busy = isFlashing || isLoadingGithub || isResolving;
+  const busy =
+    isFlashing || isLoadingGithub || isResolving || pendingOverwrite !== null;
   const operationOwner = useDeviceStore((state) => state.operationOwner);
   const showInlineBusyAlert = errorKind === "busy" && operationOwner === null;
   const installDisabled =
@@ -427,6 +454,84 @@ export function FlashPanel({
         <Alert variant="warning">
           <AlertTitle>Chip compatibility</AlertTitle>
           <AlertDescription>{chipCompatibilityWarning}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {inspectionNotice && !pendingOverwrite ? (
+        <Alert variant="info">
+          <AlertTitle>Flash inspection</AlertTitle>
+          <AlertDescription>{inspectionNotice}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {pendingOverwrite ? (
+        <Alert variant="warning">
+          <AlertTitle>
+            {overwriteDialogTitle(pendingOverwrite.outcome)}
+          </AlertTitle>
+          <AlertDescription className="space-y-3">
+            <p className="whitespace-pre-line">{pendingOverwrite.message}</p>
+            <dl className="grid gap-2 sm:grid-cols-2">
+              {pendingOverwrite.rawChipName || pendingOverwrite.chipFamily ? (
+                <div>
+                  <dt className="text-muted-foreground text-xs">Chip</dt>
+                  <dd className="text-sm font-medium">
+                    {pendingOverwrite.rawChipName ??
+                      (pendingOverwrite.chipFamily
+                        ? formatChipLabel(pendingOverwrite.chipFamily)
+                        : null)}
+                  </dd>
+                </div>
+              ) : null}
+              {pendingOverwrite.flashSize ? (
+                <div>
+                  <dt className="text-muted-foreground text-xs">Flash size</dt>
+                  <dd className="text-sm font-medium">
+                    {pendingOverwrite.flashSize}
+                  </dd>
+                </div>
+              ) : null}
+              {firmwareProjectLabel ? (
+                <div>
+                  <dt className="text-muted-foreground text-xs">
+                    Installing project
+                  </dt>
+                  <dd className="text-sm font-medium">{firmwareProjectLabel}</dd>
+                </div>
+              ) : null}
+              {firmwareVersionLabel ? (
+                <div>
+                  <dt className="text-muted-foreground text-xs">
+                    Installing version
+                  </dt>
+                  <dd className="text-sm font-medium">{firmwareVersionLabel}</dd>
+                </div>
+              ) : null}
+            </dl>
+            <p>
+              Installing new firmware will overwrite the existing installation.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                autoFocus
+                disabled={busy}
+                onClick={onCancelOverwrite}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                disabled={busy || !primaryImage}
+                onClick={onConfirmOverwrite}
+              >
+                Overwrite Firmware
+              </Button>
+            </div>
+          </AlertDescription>
         </Alert>
       ) : null}
 

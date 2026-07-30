@@ -13,6 +13,7 @@ This feature is **not** a firmware catalog, GitHub Releases installer, OTA updat
 See also:
 
 - [Flash Service](./flash-service.md)
+- [Pre-Flash Firmware Inspection](./pre-flash-inspection.md)
 - [ESP Identification](./esp-identification.md)
 - [Device Discovery](./device-discovery.md)
 - [Communication Session](./communication-session.md)

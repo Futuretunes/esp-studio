@@ -13,6 +13,7 @@ import { md5Hex } from "./md5";
 import { mapEspToolChipName } from "./map-chip-name";
 import type {
   ChipIdentificationResult,
+  EspToolFlashInspectionResult,
   EspToolFlashOptions,
   EspToolVerifyOptions,
   EspToolVerifyResult,
@@ -57,9 +58,57 @@ export class EspToolAdapter {
   }
 
   /**
-   * Writes one or more firmware images.
+   * Samples flash at the given addresses and returns chip + optional flash size.
+   *
+   * Used by pre-flash inspection. Does not invent firmware product identity.
    *
    * @param port - Already-open Web Serial port
+   * @param addresses - Absolute flash offsets to sample
+   * @param sampleLength - Bytes to read at each address
+   */
+  async inspectFlash(
+    port: EspToolSerialPort,
+    addresses: readonly number[],
+    sampleLength: number,
+  ): Promise<EspToolFlashInspectionResult> {
+    if (addresses.length === 0) {
+      throw new Error("Cannot inspect flash: no sample addresses were provided.");
+    }
+    if (!Number.isInteger(sampleLength) || sampleLength <= 0) {
+      throw new Error("Flash inspection sample length must be a positive integer.");
+    }
+
+    return this.#withBootloader(port, async (loader) => {
+      const regions = [];
+      for (const address of addresses) {
+        if (!Number.isInteger(address) || address < 0) {
+          throw new Error("Flash inspection address must be a non-negative integer.");
+        }
+        const bytes = await loader.readFlash(address, sampleLength);
+        regions.push({ address, bytes });
+      }
+
+      let flashSize: string | undefined;
+      try {
+        flashSize = await loader.detectFlashSize();
+      } catch {
+        flashSize = undefined;
+      }
+
+      const chip = this.#chipFromLoader(loader);
+      return {
+        chipFamily: chip.chipFamily,
+        ...(chip.rawName !== undefined ? { rawName: chip.rawName } : {}),
+        ...(flashSize !== undefined ? { flashSize } : {}),
+        regions,
+      };
+    });
+  }
+
+  /**
+   * Writes one or more firmware images.
+   *
+   * @param port - Already-opened Web Serial port
    * @param options - Images and flash parameters
    */
   async flash(
@@ -71,6 +120,22 @@ export class EspToolAdapter {
     }
 
     return this.#withBootloader(port, async (loader) => {
+      // esptool-js writeFlash calls flashSizeBytes(options.flashSize) before
+      // resolving "detect", and flashSizeBytes("detect") returns -1 — which
+      // makes every image fail the fit check. Resolve detection first.
+      let flashSize: NonNullable<EspToolFlashOptions["flashSize"]> =
+        options.flashSize ?? "detect";
+      if (flashSize === "detect") {
+        try {
+          const detected = await loader.detectFlashSize();
+          flashSize = detected as NonNullable<EspToolFlashOptions["flashSize"]>;
+        } catch {
+          throw new Error(
+            "Unable to determine flash size. Reconnect the board and try again, or flash with an explicit flash size once that option is available.",
+          );
+        }
+      }
+
       const writeOptions: {
         fileArray: { data: Uint8Array; address: number }[];
         flashMode: NonNullable<EspToolFlashOptions["flashMode"]>;
@@ -87,7 +152,7 @@ export class EspToolAdapter {
         })),
         flashMode: options.flashMode ?? "keep",
         flashFreq: options.flashFreq ?? "keep",
-        flashSize: options.flashSize ?? "detect",
+        flashSize,
         eraseAll: options.eraseAll ?? false,
         compress: options.compress ?? true,
         calculateMD5Hash: md5Hex,

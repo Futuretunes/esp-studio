@@ -7,6 +7,11 @@ import {
 } from "@/features/flash/chip-compatibility";
 import { DEFAULT_APP_FLASH_ADDRESS } from "@/features/flash/constants";
 import {
+  createFailedFlashInspectionReport,
+  flashInspectionRequiresConfirmation,
+  type FlashInspectionReport,
+} from "@/features/flash/flash-inspection";
+import {
   FlashBusyError,
   FlashDeviceError,
   FlashError,
@@ -142,6 +147,11 @@ export function useFlashWorkflow() {
   const [isFlashing, setIsFlashing] = useState(false);
   const [progress, setProgress] = useState<FlashProgress | null>(null);
   const [result, setResult] = useState<FlashResult | null>(null);
+  const [inspectionNotice, setInspectionNotice] = useState<string | null>(
+    null,
+  );
+  const [pendingOverwrite, setPendingOverwrite] =
+    useState<FlashInspectionReport | null>(null);
   const [errorKind, setErrorKind] = useState<FlashUiErrorKind>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [providerErrorCode, setProviderErrorCode] = useState<
@@ -242,6 +252,8 @@ export function useFlashWorkflow() {
     setGithubReleasesHref(null);
     setResult(null);
     setProgress(null);
+    setInspectionNotice(null);
+    setPendingOverwrite(null);
   }, []);
 
   const releasesHrefForSlug = useCallback((slug: string): string | null => {
@@ -619,22 +631,8 @@ export function useFlashWorkflow() {
     [clearFeedback, clearFirmware, localProvider, refreshCatalog],
   );
 
-  const startFlash = useCallback(async () => {
-    clearFeedback();
-
-    if (!ensureSupport()) {
-      return;
-    }
-
-    if (!activeDevice) {
-      setErrorKind("no-device");
-      setErrorMessage(
-        "No device is connected. Open Devices, connect your board, then return here to install.",
-      );
-      return;
-    }
-
-    if (!resolved || resolved.images.length === 0) {
+  const performFlash = useCallback(async () => {
+    if (!activeDevice || !resolved || resolved.images.length === 0) {
       setErrorKind("no-file");
       setErrorMessage(
         "Select a firmware project and wait for it to load before installing.",
@@ -716,7 +714,100 @@ export function useFlashWorkflow() {
     } finally {
       setIsFlashing(false);
     }
-  }, [activeDevice, clearFeedback, ensureSupport, resolved, service]);
+  }, [activeDevice, resolved, service]);
+
+  const startFlash = useCallback(async () => {
+    clearFeedback();
+
+    if (!ensureSupport()) {
+      return;
+    }
+
+    if (!activeDevice) {
+      setErrorKind("no-device");
+      setErrorMessage(
+        "No device is connected. Open Devices, connect your board, then return here to install.",
+      );
+      return;
+    }
+
+    if (!resolved || resolved.images.length === 0) {
+      setErrorKind("no-file");
+      setErrorMessage(
+        "Select a firmware project and wait for it to load before installing.",
+      );
+      return;
+    }
+
+    setIsFlashing(true);
+    setProgress({
+      stage: "inspecting",
+      message: "Inspecting flash contents…",
+      percent: 5,
+    });
+
+    try {
+      const report = await service.inspectPreFlash(activeDevice.id, {
+        onProgress: (next) => {
+          setProgress(next);
+        },
+      });
+
+      if (flashInspectionRequiresConfirmation(report.outcome)) {
+        setPendingOverwrite(report);
+        setIsFlashing(false);
+        setProgress(null);
+        return;
+      }
+
+      setInspectionNotice(report.message);
+      await performFlash();
+    } catch (error) {
+      setIsFlashing(false);
+      if (error instanceof FlashBusyError) {
+        setErrorKind("busy");
+        setErrorMessage(error.message);
+      } else if (error instanceof FlashDeviceError) {
+        setErrorKind("no-device");
+        setErrorMessage(error.message);
+      } else if (error instanceof FlashError) {
+        setErrorKind("failed");
+        setErrorMessage(error.message);
+      } else {
+        // Unexpected throw — still require overwrite confirm (honest failure path).
+        const report = createFailedFlashInspectionReport(
+          error instanceof Error ? error.message : undefined,
+        );
+        setPendingOverwrite(report);
+        setProgress(null);
+      }
+    }
+  }, [
+    activeDevice,
+    clearFeedback,
+    ensureSupport,
+    performFlash,
+    resolved,
+    service,
+  ]);
+
+  const confirmOverwrite = useCallback(async () => {
+    if (!pendingOverwrite) {
+      return;
+    }
+    setPendingOverwrite(null);
+    setInspectionNotice(null);
+    setErrorKind(null);
+    setErrorMessage(null);
+    setResult(null);
+    await performFlash();
+  }, [pendingOverwrite, performFlash]);
+
+  const cancelOverwrite = useCallback(() => {
+    setPendingOverwrite(null);
+    setProgress(null);
+    setInspectionNotice(null);
+  }, []);
 
   const primaryImage = resolved?.images[0] ?? null;
 
@@ -770,6 +861,8 @@ export function useFlashWorkflow() {
     isFlashing,
     progress,
     result,
+    inspectionNotice,
+    pendingOverwrite,
     errorKind,
     errorMessage,
     providerErrorCode,
@@ -790,5 +883,7 @@ export function useFlashWorkflow() {
     selectFirmwareFile,
     clearFirmware,
     startFlash,
+    confirmOverwrite,
+    cancelOverwrite,
   };
 }

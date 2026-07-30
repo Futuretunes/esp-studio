@@ -19,6 +19,7 @@ export type {
   ChipIdentificationResult,
   EspToolFlashFreq,
   EspToolFlashImage,
+  EspToolFlashInspectionResult,
   EspToolFlashMode,
   EspToolFlashOptions,
   EspToolFlashSize,

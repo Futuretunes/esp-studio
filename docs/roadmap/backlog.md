@@ -19,6 +19,7 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 | 9d       | GitHub Firmware    | ✅     | First remote FirmwareProvider (Releases + Flash UI) |
 | 9e       | Built-in Catalog   | ✅     | Static popular projects → GitHubFirmwareProvider    |
 | 9f       | One-click Install  | ✅     | Connect → pick project → Install Firmware           |
+| 9g       | Pre-flash Inspect  | ✅     | Confirm before overwrite; blank skips confirm       |
 | 10       | Firmware Plugins   | ⬜     | Installer contribution points + first plugins       |
 | 11       | Firmware Library   | ✅     | Catalog browser + one-click install                 |
 | 12       | Serial Monitor     | ✅     | Minimal UTF-8 console over `CommunicationSession`   |

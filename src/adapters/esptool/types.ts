@@ -18,6 +18,20 @@ export type ChipIdentificationResult = {
 };
 
 /**
+ * Result of sampling flash contents before a write.
+ */
+export type EspToolFlashInspectionResult = {
+  readonly chipFamily: ChipFamily;
+  readonly rawName?: string;
+  /** Auto-detected flash size string when available (for example `"4MB"`). */
+  readonly flashSize?: string;
+  readonly regions: readonly {
+    readonly address: number;
+    readonly bytes: Uint8Array;
+  }[];
+};
+
+/**
  * One firmware image segment to write or verify.
  */
 export type EspToolFlashImage = {

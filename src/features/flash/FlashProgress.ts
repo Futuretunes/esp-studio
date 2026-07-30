@@ -8,6 +8,7 @@
 export type FlashStage =
   | "preparing"
   | "connecting"
+  | "inspecting"
   | "erasing"
   | "writing"
   | "verifying"
