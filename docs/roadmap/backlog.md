@@ -20,7 +20,7 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 | 9e       | Built-in Catalog   | ✅     | Static popular projects → GitHubFirmwareProvider    |
 | 9f       | One-click Install  | ✅     | Connect → pick project → Install Firmware           |
 | 10       | Firmware Plugins   | ⬜     | Installer contribution points + first plugins       |
-| 11       | Firmware Library   | 🟡     | Catalog browser + one-click install                 |
+| 11       | Firmware Library   | ✅     | Catalog browser + one-click install                 |
 | 12       | Serial Monitor     | ✅     | Minimal UTF-8 console over `CommunicationSession`   |
 | 13       | Filesystem         | ✅     | SPIFFS / LittleFS browse-only browser               |
 | 13a      | Public Beta Harden | ✅     | Reliability, UX consistency, smoke tests            |
