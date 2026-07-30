@@ -22,6 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { isFirmwareChipCompatible } from "@/features/flash/chip-compatibility";
 import { formatFlashAddress } from "@/features/flash/format-flash-address";
 import { formatFirmwareSize } from "@/features/flash/format-firmware-size";
 import type { FlashProgress } from "@/features/flash/FlashProgress";
@@ -59,6 +60,9 @@ type FlashPanelProps = {
   result: FlashResult | null;
   errorKind: FlashUiErrorKind;
   errorMessage: string | null;
+  chipCompatibilityWarning: string | null;
+  firmwareProjectLabel: string | null;
+  firmwareVersionLabel: string | null;
   flashAddress: number;
   fileInputRef: RefObject<HTMLInputElement | null>;
   onFirmwareSourceChange: (source: FlashFirmwareSource) => void;
@@ -68,7 +72,7 @@ type FlashPanelProps = {
   onSelectCatalogEntry: (key: string) => void;
   onSelectFile: (file: File | null) => void;
   onClearFile: () => void;
-  onFlash: () => void;
+  onInstall: () => void;
 };
 
 const BUILTIN_ICONS: Readonly<Record<string, LucideIcon>> = {
@@ -130,7 +134,7 @@ function formatCategoryLabel(category: BuiltInCatalogEntry["category"]): string 
 }
 
 /**
- * Flash UI surface: device summary, catalog selection, progress, and result.
+ * One-click Install Flash UI: project cards, auto-resolved options, Install.
  */
 export function FlashPanel({
   activeDevice,
@@ -151,6 +155,9 @@ export function FlashPanel({
   result,
   errorKind,
   errorMessage,
+  chipCompatibilityWarning,
+  firmwareProjectLabel,
+  firmwareVersionLabel,
   flashAddress,
   fileInputRef,
   onFirmwareSourceChange,
@@ -160,11 +167,11 @@ export function FlashPanel({
   onSelectCatalogEntry,
   onSelectFile,
   onClearFile,
-  onFlash,
+  onInstall,
 }: FlashPanelProps): JSX.Element {
   const unsupported = webSerialSupported === false;
   const busy = isFlashing || isLoadingGithub || isResolving;
-  const flashDisabled =
+  const installDisabled =
     unsupported ||
     busy ||
     !activeDevice ||
@@ -172,6 +179,10 @@ export function FlashPanel({
     primaryImage.data.length === 0;
   const showGitHubOptions =
     firmwareSource === "github" || firmwareSource === "builtin";
+  const showVersionSelector =
+    showGitHubOptions &&
+    releaseSummary !== null &&
+    catalogEntries.length > 1;
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
@@ -209,7 +220,7 @@ export function FlashPanel({
             <Link to="/devices" className="underline underline-offset-4">
               Devices
             </Link>{" "}
-            page before flashing firmware.
+            page, then return here to install firmware.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -217,10 +228,10 @@ export function FlashPanel({
       {errorKind === "no-file" || errorKind === "invalid-file" ? (
         <Alert variant="warning">
           <AlertTitle>
-            {errorKind === "invalid-file" ? "Invalid file" : "No firmware selected"}
+            {errorKind === "invalid-file" ? "Invalid file" : "No firmware"}
           </AlertTitle>
           <AlertDescription>
-            {errorMessage ?? "Select firmware from the catalog to continue."}
+            {errorMessage ?? "Select a firmware project to continue."}
           </AlertDescription>
         </Alert>
       ) : null}
@@ -250,18 +261,25 @@ export function FlashPanel({
           <AlertTitle>
             {errorMessage?.toLowerCase().includes("verif")
               ? "Verification failed"
-              : "Flash failed"}
+              : "Install failed"}
           </AlertTitle>
           <AlertDescription>
             {errorMessage ??
-              "The firmware could not be written. Check the cable and try again."}
+              "The firmware could not be installed. Check the cable and try again."}
           </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {chipCompatibilityWarning ? (
+        <Alert variant="warning">
+          <AlertTitle>Chip compatibility</AlertTitle>
+          <AlertDescription>{chipCompatibilityWarning}</AlertDescription>
         </Alert>
       ) : null}
 
       {result?.success === true ? (
         <Alert variant="info">
-          <AlertTitle>Flash completed</AlertTitle>
+          <AlertTitle>Install completed</AlertTitle>
           <AlertDescription>
             {result.message ??
               "Firmware was written, verified, and the device was reset."}
@@ -269,15 +287,15 @@ export function FlashPanel({
         </Alert>
       ) : null}
 
-      {activeDevice ? (
-        <Card>
-          <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
-            <div className="space-y-1.5">
-              <CardTitle>{activeDevice.name}</CardTitle>
-              <CardDescription>
-                {activeDevice.transportLabel ?? "Serial port"}
-              </CardDescription>
-            </div>
+      <Card>
+        <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+          <div className="space-y-1.5">
+            <CardTitle>Install summary</CardTitle>
+            <CardDescription>
+              Device and firmware ready for one-click install.
+            </CardDescription>
+          </div>
+          {activeDevice ? (
             <Badge
               variant={
                 activeDevice.status === "connected" ? "success" : "secondary"
@@ -285,35 +303,85 @@ export function FlashPanel({
             >
               {activeDevice.status}
             </Badge>
-          </CardHeader>
-          <CardContent>
-            <dl className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <dt className="text-muted-foreground text-xs">Chip</dt>
-                <dd className="text-sm font-medium">
-                  {formatChipLabel(activeDevice.chipFamily)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground text-xs">Provider</dt>
-                <dd className="text-sm font-medium">
-                  {activeDevice.providerLabel}
-                </dd>
-              </div>
-            </dl>
-          </CardContent>
-        </Card>
-      ) : null}
+          ) : (
+            <Badge variant="secondary">No device</Badge>
+          )}
+        </CardHeader>
+        <CardContent>
+          <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div>
+              <dt className="text-muted-foreground text-xs">Device</dt>
+              <dd className="text-sm font-medium">
+                {activeDevice?.name ?? "Not connected"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground text-xs">Chip</dt>
+              <dd className="text-sm font-medium">
+                {activeDevice
+                  ? formatChipLabel(activeDevice.chipFamily)
+                  : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground text-xs">Firmware project</dt>
+              <dd className="truncate text-sm font-medium">
+                {firmwareProjectLabel ?? "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground text-xs">Firmware version</dt>
+              <dd className="text-sm font-medium">
+                {firmwareVersionLabel ?? "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground text-xs">Firmware size</dt>
+              <dd className="text-sm font-medium">
+                {primaryImage
+                  ? formatFirmwareSize(primaryImage.size)
+                  : isResolving || isLoadingGithub
+                    ? "Loading…"
+                    : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground text-xs">Flash address</dt>
+              <dd className="font-mono text-sm">
+                {primaryImage
+                  ? formatFlashAddress(primaryImage.address)
+                  : formatFlashAddress(flashAddress)}
+              </dd>
+            </div>
+          </dl>
+        </CardContent>
+        <CardFooter className="justify-end gap-2">
+          {resolved ? (
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={busy}
+              onClick={onClearFile}
+            >
+              Clear
+            </Button>
+          ) : null}
+          <Button type="button" disabled={installDisabled} onClick={onInstall}>
+            {isFlashing
+              ? "Installing…"
+              : isResolving || isLoadingGithub
+                ? "Preparing…"
+                : "Install Firmware"}
+          </Button>
+        </CardFooter>
+      </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Firmware catalog</CardTitle>
+          <CardTitle>Choose firmware</CardTitle>
           <CardDescription>
-            Choose a source, then select installable firmware. Images flash at{" "}
-            <span className="font-mono text-xs">
-              {formatFlashAddress(flashAddress)}
-            </span>{" "}
-            unless the package declares another address.
+            Select a project. The latest release loads automatically; Install
+            becomes ready when firmware is resolved.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -362,6 +430,13 @@ export function FlashPanel({
                   {builtInEntries.map((entry) => {
                     const Icon = BUILTIN_ICONS[entry.icon] ?? CircuitBoard;
                     const selected = selectedBuiltInId === entry.id;
+                    const chipHint =
+                      activeDevice &&
+                      activeDevice.chipFamily !== "unknown" &&
+                      !isFirmwareChipCompatible(
+                        entry.chipFamilies,
+                        activeDevice.chipFamily,
+                      );
                     return (
                       <button
                         key={entry.id}
@@ -397,6 +472,9 @@ export function FlashPanel({
                             <Badge variant="outline">
                               {formatCategoryLabel(entry.category)}
                             </Badge>
+                            {chipHint ? (
+                              <Badge variant="destructive">Chip warning</Badge>
+                            ) : null}
                           </div>
                         </div>
                       </button>
@@ -405,7 +483,7 @@ export function FlashPanel({
                 </div>
               )}
 
-              {isLoadingGithub && selectedBuiltInId !== null ? (
+              {isLoadingGithub || isResolving ? (
                 <div className="space-y-2">
                   <Skeleton className="h-4 w-40" />
                   <Skeleton className="h-4 w-56" />
@@ -450,10 +528,6 @@ export function FlashPanel({
                     {isLoadingGithub ? "Loading…" : "Load release"}
                   </Button>
                 </div>
-                <p className="text-muted-foreground text-xs">
-                  Enter <span className="font-medium">owner/repository</span>.
-                  The slug is remembered in this browser.
-                </p>
               </div>
             </div>
           ) : null}
@@ -470,13 +544,6 @@ export function FlashPanel({
                 <dt className="text-muted-foreground text-xs">Latest release</dt>
                 <dd className="text-sm font-medium">
                   {releaseSummary.name ?? releaseSummary.tagName}
-                  {releaseSummary.name !== null &&
-                  releaseSummary.name !== releaseSummary.tagName ? (
-                    <span className="text-muted-foreground">
-                      {" "}
-                      ({releaseSummary.tagName})
-                    </span>
-                  ) : null}
                 </dd>
               </div>
               <div>
@@ -488,16 +555,61 @@ export function FlashPanel({
             </dl>
           ) : null}
 
-          {firmwareSource === "local" ||
-          (showGitHubOptions && releaseSummary !== null) ? (
+          {showVersionSelector ? (
+            <div className="space-y-2">
+              <label
+                htmlFor="firmware-version-select"
+                className="text-muted-foreground text-xs"
+              >
+                Firmware version / image
+              </label>
+              <select
+                id="firmware-version-select"
+                value={selectionKey}
+                disabled={busy || unsupported}
+                onChange={handleCatalogChange}
+                className={cn(
+                  "border-input bg-background ring-offset-background focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+                )}
+              >
+                {catalogEntries.map((entry) => {
+                  const key = catalogSelectionKey(
+                    entry.manifest.providerId,
+                    entry.manifest.id,
+                  );
+                  const families =
+                    entry.manifest.chipFamilies ??
+                    builtInEntries.find((item) => item.id === selectedBuiltInId)
+                      ?.chipFamilies;
+                  const compatible = isFirmwareChipCompatible(
+                    families,
+                    activeDevice?.chipFamily,
+                  );
+                  return (
+                    <option key={key} value={key}>
+                      {entry.manifest.title}
+                      {entry.manifest.version
+                        ? ` · ${entry.manifest.version}`
+                        : ""}
+                      {!compatible ? " (may be incompatible)" : ""}
+                    </option>
+                  );
+                })}
+              </select>
+              <p className="text-muted-foreground text-xs">
+                Compatible options are listed first. Incompatible builds stay
+                visible with a warning.
+              </p>
+            </div>
+          ) : null}
+
+          {firmwareSource === "local" ? (
             <div className="space-y-2">
               <label
                 htmlFor="firmware-catalog-select"
                 className="text-muted-foreground text-xs"
               >
-                {firmwareSource === "local"
-                  ? "Catalog entry"
-                  : "Firmware options"}
+                Catalog entry
               </label>
               <select
                 id="firmware-catalog-select"
@@ -508,27 +620,15 @@ export function FlashPanel({
                   "border-input bg-background ring-offset-background focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
                 )}
               >
-                <option value="">
-                  {isResolving ? "Downloading…" : "Select firmware…"}
-                </option>
+                <option value="">Select firmware…</option>
                 {catalogEntries.map((entry) => {
                   const key = catalogSelectionKey(
                     entry.manifest.providerId,
                     entry.manifest.id,
                   );
-                  const originSuffix =
-                    entry.origin === "generated"
-                      ? " (generated)"
-                      : entry.origin === "manifest"
-                        ? " (manifest)"
-                        : "";
                   return (
                     <option key={key} value={key}>
                       {entry.manifest.title}
-                      {entry.manifest.version
-                        ? ` · ${entry.manifest.version}`
-                        : ""}
-                      {originSuffix}
                     </option>
                   );
                 })}
@@ -540,78 +640,11 @@ export function FlashPanel({
           selectedBuiltInId === null &&
           !isLoadingGithub ? (
             <p className="text-muted-foreground text-sm">
-              Choose a popular project card to load its latest GitHub release.
+              Choose a project card to load its latest release and prepare
+              Install.
             </p>
           ) : null}
-
-          {firmwareSource === "github" && releaseSummary === null ? (
-            <p className="text-muted-foreground text-sm">
-              Load a public repository to list firmware options from its latest
-              release.
-            </p>
-          ) : null}
-
-          <div className="flex flex-wrap gap-2">
-            {resolved ? (
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={busy}
-                onClick={onClearFile}
-              >
-                Clear selection
-              </Button>
-            ) : null}
-          </div>
-
-          {resolved && primaryImage ? (
-            <dl className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <dt className="text-muted-foreground text-xs">Firmware</dt>
-                <dd className="truncate text-sm font-medium">
-                  {resolved.manifest.title}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground text-xs">Source</dt>
-                <dd className="text-sm font-medium">
-                  {resolved.manifest.sourceKind}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground text-xs">Firmware size</dt>
-                <dd className="text-sm font-medium">
-                  {formatFirmwareSize(primaryImage.size)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground text-xs">Flash address</dt>
-                <dd className="font-mono text-sm">
-                  {formatFlashAddress(primaryImage.address)}
-                </dd>
-              </div>
-            </dl>
-          ) : (
-            <p className="text-muted-foreground text-sm">
-              {firmwareSource === "local" ? (
-                <>
-                  No firmware selected yet. Choose{" "}
-                  <span className="font-medium">Local file...</span> from the
-                  catalog.
-                </>
-              ) : firmwareSource === "builtin" ? (
-                "No firmware selected yet. Pick a project, then choose a release option (assets download on select)."
-              ) : (
-                "No firmware selected yet. Load a repository, then choose an option (assets download on select)."
-              )}
-            </p>
-          )}
         </CardContent>
-        <CardFooter className="justify-end gap-2">
-          <Button type="button" disabled={flashDisabled} onClick={onFlash}>
-            {isFlashing ? "Flashing…" : "Flash firmware"}
-          </Button>
-        </CardFooter>
       </Card>
 
       {isFlashing || progress ? (

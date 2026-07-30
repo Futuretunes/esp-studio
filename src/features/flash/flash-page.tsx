@@ -5,7 +5,7 @@ import { FlashPanel } from "@/features/flash/flash-panel";
 import { useFlashWorkflow } from "@/features/flash/use-flash-workflow";
 
 /**
- * Flash feature: catalog-selected firmware flashing through {@link FlashService}.
+ * Flash feature: one-click install through catalog + {@link FlashService}.
  */
 export function FlashFeature(): JSX.Element {
   const {
@@ -27,6 +27,9 @@ export function FlashFeature(): JSX.Element {
     result,
     errorKind,
     errorMessage,
+    chipCompatibilityWarning,
+    firmwareProjectLabel,
+    firmwareVersionLabel,
     flashAddress,
     fileInputRef,
     ensureSupport,
@@ -47,8 +50,8 @@ export function FlashFeature(): JSX.Element {
   return (
     <div>
       <PageHeader
-        title="Flash Firmware"
-        description="Select firmware from the catalog and write it to a connected ESP board."
+        title="Install Firmware"
+        description="Connect a device, choose a project, then click Install Firmware."
       />
       <FlashPanel
         activeDevice={activeDevice}
@@ -69,6 +72,9 @@ export function FlashFeature(): JSX.Element {
         result={result}
         errorKind={errorKind}
         errorMessage={errorMessage}
+        chipCompatibilityWarning={chipCompatibilityWarning}
+        firmwareProjectLabel={firmwareProjectLabel}
+        firmwareVersionLabel={firmwareVersionLabel}
         flashAddress={flashAddress}
         fileInputRef={fileInputRef}
         onFirmwareSourceChange={setFirmwareSource}
@@ -82,7 +88,7 @@ export function FlashFeature(): JSX.Element {
           void selectFirmwareFile(file);
         }}
         onClearFile={clearFirmware}
-        onFlash={() => {
+        onInstall={() => {
           void startFlash();
         }}
       />
