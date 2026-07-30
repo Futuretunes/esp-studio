@@ -112,13 +112,13 @@ Root `/` lists filesystem **volumes** (partition labels) as directories. Expandi
 
 ## Acceptance Criteria
 
-- [ ] Feature doc with architecture + sequence diagram.
-- [ ] `FilesystemService` + models + typed errors under `src/features/filesystem/`.
-- [ ] `EspFilesystemAdapter` under `src/adapters/filesystem/` (no feature→esptool-js).
-- [ ] Filesystem page: list, expand/collapse, refresh, loading/errors.
-- [ ] Ownership `"filesystem-browser"` with release in `finally`.
-- [ ] No upload / download / delete / rename / create.
-- [ ] `pnpm lint` / `typecheck` / `build` pass.
+- [x] Feature doc with architecture + sequence diagram.
+- [x] `FilesystemService` + models + typed errors under `src/features/filesystem/`.
+- [x] `EspFilesystemAdapter` under `src/adapters/filesystem/` (no feature→esptool-js).
+- [x] Filesystem page: list, expand/collapse, refresh, loading/errors.
+- [x] Ownership `"filesystem-browser"` with release in `finally`.
+- [x] No upload / download / delete / rename / create.
+- [x] `pnpm lint` / `typecheck` / `build` pass.
 
 ## Future Improvements
 
@@ -130,9 +130,9 @@ Root `/` lists filesystem **volumes** (partition labels) as directories. Expandi
 ## TODO Checklist
 
 - [x] Documentation reviewed
-- [ ] Implementation complete
-- [ ] `pnpm lint` / `pnpm typecheck` / `pnpm build` pass
-- [ ] Roadmap updated
+- [x] Implementation complete
+- [x] `pnpm lint` / `pnpm typecheck` / `pnpm build` pass
+- [x] Roadmap updated
 
 ## Architectural notes (backwards-compatible)
 

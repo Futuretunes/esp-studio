@@ -14,7 +14,7 @@ ESP Studio is a browser-only SPA (React + Vite + TypeScript). There is **no back
 
 ### Standard commands
 
-See `README.md` / `package.json` scripts for `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm format`, and `pnpm preview`.
+See `README.md` / `package.json` scripts for `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm format`, and `pnpm preview`.
 
 ### Gotchas
 
@@ -27,6 +27,7 @@ See `README.md` / `package.json` scripts for `pnpm lint`, `pnpm typecheck`, `pnp
 - Domain contracts live in `src/core/*` (no React, no Web Serial/WebUSB). Device discovery uses `@/core/device`; raw byte streams use `@/core/transport` (`TransportIo`). Concrete transports belong in `src/providers/*` (Web Serial: `@/providers/web-serial`).
 - Register providers at the app composition root (`src/app/device-runtime.ts` + `DeviceManagerProvider`); do not import `src/providers/*` from `src/core/*`.
 - Devices UI talks to `useDeviceManager()` and stores serializable snapshots in Zustand (`useDeviceStore`). Never pass `SerialPort` into React state.
+- Unexpected unplug / permission revoke: Web Serial fires `disconnect`; `WebSerialConnection` marks itself disconnected and the `ConnectionLossWatchdog` clears `activeDevice` with `errorKind: "lost"`. Do not invent auto-reconnect without a product decision.
 - Byte IO for Serial Monitor / Flash must go through `CommunicationSession` over `connection.io` (`TransportIo`, `Uint8Array` only). Serial Monitor owner id is `"serial-monitor"` (`src/features/serial/constants.ts`).
 - Chip identification owner id is `"chip-identification"` (`src/features/identification`). Flash Service owner id is `"flash-service"` (`src/features/flash`). Both require `TransportIo` to be **closed** (Serial Monitor must be stopped) because esptool-js needs native port stream locks + DTR/RTS. Never import `esptool-js` outside `src/adapters/esptool`. Call flash ops through `FlashService` / `EspToolAdapter` only. Flash UI sources: **Built-in Catalog** (static `src/features/firmware/catalog/`), **GitHub Repository**, or **Local File**. Built-in cards only supply `owner/repo` to `GitHubFirmwareProvider`; GitHub REST types stay under `src/features/firmware/providers/github/`. Default local / generated `.bin` address remains `DEFAULT_APP_FLASH_ADDRESS` (`0x10000`). Canonical package JSON is `FirmwareManifestDocument` (`schemaVersion: 1`) via `parseFirmwareManifest*` / `validateFirmwareManifestDocument`.
 - GitHub release **binary** downloads use the Vite same-origin proxy `/__esp-studio/github-asset` in `pnpm dev` / `pnpm preview` (GitHub CDNs block browser CORS). Release **metadata** still comes from `api.github.com` directly.

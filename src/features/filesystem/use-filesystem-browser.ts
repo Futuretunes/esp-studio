@@ -37,6 +37,9 @@ export function useFilesystemBrowser() {
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<
+    FilesystemError["code"] | "generic" | null
+  >(null);
 
   const ensureSupport = useCallback(() => {
     const supported = isWebSerialSupported();
@@ -58,6 +61,7 @@ export function useFilesystemBrowser() {
 
   const refreshRoot = useCallback(async () => {
     if (!ensureSupport()) {
+      setErrorCode("unsupported");
       setErrorMessage(
         "Web Serial is not available in this browser. Use Chrome, Edge, or Opera over HTTPS or localhost.",
       );
@@ -68,11 +72,13 @@ export function useFilesystemBrowser() {
       setRootEntries([]);
       setChildrenByPath({});
       setExpandedPaths(new Set());
+      setErrorCode(null);
       setErrorMessage(null);
       return;
     }
 
     setIsRefreshing(true);
+    setErrorCode(null);
     setErrorMessage(null);
     markLoading("/", true);
 
@@ -85,13 +91,17 @@ export function useFilesystemBrowser() {
       setRootEntries([]);
       setChildrenByPath({});
       setExpandedPaths(new Set());
-      setErrorMessage(
-        isFilesystemError(error)
-          ? error.message
-          : error instanceof Error
+      if (isFilesystemError(error)) {
+        setErrorCode(error.code);
+        setErrorMessage(error.message);
+      } else {
+        setErrorCode("generic");
+        setErrorMessage(
+          error instanceof Error
             ? error.message
             : "Could not list the device filesystem.",
-      );
+        );
+      }
     } finally {
       markLoading("/", false);
       setIsRefreshing(false);
@@ -114,6 +124,7 @@ export function useFilesystemBrowser() {
   const toggleDirectory = useCallback(
     async (path: string) => {
       if (!activeDevice) {
+        setErrorCode("no-device");
         setErrorMessage(
           "Connect a device on the Devices page before browsing the filesystem.",
         );
@@ -129,6 +140,7 @@ export function useFilesystemBrowser() {
         return;
       }
 
+      setErrorCode(null);
       setErrorMessage(null);
 
       if (childrenByPath[path] === undefined) {
@@ -140,13 +152,17 @@ export function useFilesystemBrowser() {
             [path]: entries,
           }));
         } catch (error) {
-          setErrorMessage(
-            isFilesystemError(error)
-              ? error.message
-              : error instanceof Error
+          if (isFilesystemError(error)) {
+            setErrorCode(error.code);
+            setErrorMessage(error.message);
+          } else {
+            setErrorCode("generic");
+            setErrorMessage(
+              error instanceof Error
                 ? error.message
                 : "Could not open that directory.",
-          );
+            );
+          }
           return;
         } finally {
           markLoading(path, false);
@@ -170,6 +186,7 @@ export function useFilesystemBrowser() {
     expandedPaths,
     loadingPaths,
     isRefreshing,
+    errorCode,
     errorMessage,
     refreshRoot,
     toggleDirectory,

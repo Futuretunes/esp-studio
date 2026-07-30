@@ -170,6 +170,9 @@ export function DevicesFeature(): JSX.Element {
               }
             : undefined
         }
+        onRetryConnect={() => {
+          void handleConnect();
+        }}
       />
     </div>
   );

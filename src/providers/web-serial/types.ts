@@ -23,6 +23,10 @@ export type WebSerialOpenOptions = {
 
 /**
  * Narrow `SerialPort` surface required by this provider and native adapters.
+ *
+ * `addEventListener` / `removeEventListener` for `"disconnect"` are optional so
+ * lightweight mocks stay simple. Chromium fires `disconnect` on unplug or
+ * permission revocation.
  */
 export type WebSerialPort = {
   readonly readable: ReadableStream<Uint8Array> | null;
@@ -34,6 +38,17 @@ export type WebSerialPort = {
     dataTerminalReady?: boolean;
     requestToSend?: boolean;
   }): Promise<void>;
+  forget?(): Promise<void>;
+  addEventListener?(
+    type: "disconnect",
+    listener: (this: WebSerialPort, ev: Event) => void,
+    options?: boolean | AddEventListenerOptions,
+  ): void;
+  removeEventListener?(
+    type: "disconnect",
+    listener: (this: WebSerialPort, ev: Event) => void,
+    options?: boolean | EventListenerOptions,
+  ): void;
 };
 
 /**

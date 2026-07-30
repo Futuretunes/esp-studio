@@ -31,6 +31,7 @@ export function FilesystemPanel(): JSX.Element {
     expandedPaths,
     loadingPaths,
     isRefreshing,
+    errorCode,
     errorMessage,
     refreshRoot,
     toggleDirectory,
@@ -41,7 +42,7 @@ export function FilesystemPanel(): JSX.Element {
 
   return (
     <div className="space-y-4">
-      {unsupported ? (
+      {unsupported || errorCode === "unsupported" ? (
         <Alert variant="warning">
           <AlertTitle>Browser unsupported</AlertTitle>
           <AlertDescription>
@@ -64,10 +65,62 @@ export function FilesystemPanel(): JSX.Element {
         </Alert>
       ) : null}
 
-      {errorMessage ? (
+      {errorMessage && errorCode === "busy" ? (
         <Alert variant="destructive">
-          <AlertTitle>Filesystem</AlertTitle>
-          <AlertDescription>{errorMessage}</AlertDescription>
+          <AlertTitle>Device busy</AlertTitle>
+          <AlertDescription className="space-y-3">
+            <p>{errorMessage}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" variant="secondary" asChild>
+                <Link to="/serial">Open Serial Monitor</Link>
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={!activeDevice || isRefreshing || rootLoading}
+                onClick={() => {
+                  void refreshRoot();
+                }}
+              >
+                Retry
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {errorMessage && errorCode !== "busy" && errorCode !== "unsupported" ? (
+        <Alert variant="destructive">
+          <AlertTitle>
+            {errorCode === "no-device"
+              ? "No device"
+              : errorCode === "not-found"
+                ? "Not found"
+                : "Filesystem"}
+          </AlertTitle>
+          <AlertDescription className="space-y-3">
+            <p>{errorMessage}</p>
+            <div className="flex flex-wrap gap-2">
+              {errorCode === "no-device" ? (
+                <Button type="button" size="sm" variant="secondary" asChild>
+                  <Link to="/devices">Open Devices</Link>
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  disabled={!activeDevice || isRefreshing || rootLoading}
+                  onClick={() => {
+                    void refreshRoot();
+                  }}
+                >
+                  Retry
+                </Button>
+              )}
+            </div>
+          </AlertDescription>
         </Alert>
       ) : null}
 

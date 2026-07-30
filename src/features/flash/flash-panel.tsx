@@ -239,9 +239,33 @@ export function FlashPanel({
       {errorKind === "provider" ? (
         <Alert variant="destructive">
           <AlertTitle>Firmware source error</AlertTitle>
-          <AlertDescription>
-            {errorMessage ??
-              "The selected firmware source could not be loaded."}
+          <AlertDescription className="space-y-3">
+            <p>
+              {errorMessage ??
+                "The selected firmware source could not be loaded."}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {firmwareSource === "github" || firmwareSource === "builtin" ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  disabled={busy}
+                  onClick={onLoadGitHubRepository}
+                >
+                  Retry load
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={installDisabled}
+                onClick={onInstall}
+              >
+                Retry install
+              </Button>
+            </div>
           </AlertDescription>
         </Alert>
       ) : null}
@@ -249,9 +273,25 @@ export function FlashPanel({
       {errorKind === "busy" ? (
         <Alert variant="destructive">
           <AlertTitle>Device busy</AlertTitle>
-          <AlertDescription>
-            {errorMessage ??
-              "Another tool owns the serial connection. Stop the Serial Monitor and try again."}
+          <AlertDescription className="space-y-3">
+            <p>
+              {errorMessage ??
+                "Another tool owns the serial connection. Stop the Serial Monitor and try again."}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" variant="secondary" asChild>
+                <Link to="/serial">Open Serial Monitor</Link>
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={installDisabled}
+                onClick={onInstall}
+              >
+                Retry install
+              </Button>
+            </div>
           </AlertDescription>
         </Alert>
       ) : null}
@@ -263,9 +303,28 @@ export function FlashPanel({
               ? "Verification failed"
               : "Install failed"}
           </AlertTitle>
-          <AlertDescription>
-            {errorMessage ??
-              "The firmware could not be installed. Check the cable and try again."}
+          <AlertDescription className="space-y-3">
+            <p>
+              {errorMessage ??
+                "The firmware could not be installed. Check the cable and try again."}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {errorKind === "no-device" ? (
+                <Button type="button" size="sm" variant="secondary" asChild>
+                  <Link to="/devices">Open Devices</Link>
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  disabled={installDisabled}
+                  onClick={onInstall}
+                >
+                  Retry
+                </Button>
+              )}
+            </div>
           </AlertDescription>
         </Alert>
       ) : null}

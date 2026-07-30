@@ -1,4 +1,5 @@
 import { useEffect, useRef, type JSX } from "react";
+import { Link } from "react-router-dom";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +34,7 @@ export function SerialMonitorPanel(): JSX.Element {
     handleDisconnect,
     handleSend,
     clearOutput,
+    restartMonitor,
   } = useSerialMonitor();
 
   const outputEndRef = useRef<HTMLDivElement | null>(null);
@@ -42,6 +44,10 @@ export function SerialMonitorPanel(): JSX.Element {
   }, [output]);
 
   const unsupported = webSerialSupported === false;
+  const streamEnded =
+    errorMessage !== null &&
+    (errorMessage.toLowerCase().includes("stream ended") ||
+      errorMessage.toLowerCase().includes("disconnected"));
 
   return (
     <div className="space-y-4">
@@ -55,10 +61,51 @@ export function SerialMonitorPanel(): JSX.Element {
         </Alert>
       ) : null}
 
+      {!activeDevice && !unsupported && !errorMessage ? (
+        <Alert variant="info">
+          <AlertTitle>No device connected</AlertTitle>
+          <AlertDescription>
+            Connect here or from the{" "}
+            <Link to="/devices" className="underline underline-offset-4">
+              Devices
+            </Link>{" "}
+            page to start monitoring.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       {errorMessage ? (
         <Alert variant="destructive">
           <AlertTitle>Serial Monitor</AlertTitle>
-          <AlertDescription>{errorMessage}</AlertDescription>
+          <AlertDescription className="space-y-3">
+            <p>{errorMessage}</p>
+            <div className="flex flex-wrap gap-2">
+              {streamEnded && activeDevice ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  disabled={isMonitoring || isConnecting || isDisconnecting}
+                  onClick={restartMonitor}
+                >
+                  Restart monitor
+                </Button>
+              ) : null}
+              {!activeDevice ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  disabled={unsupported || isConnecting}
+                  onClick={() => {
+                    void handleConnect();
+                  }}
+                >
+                  Reconnect
+                </Button>
+              ) : null}
+            </div>
+          </AlertDescription>
         </Alert>
       ) : null}
 
@@ -123,12 +170,22 @@ export function SerialMonitorPanel(): JSX.Element {
           </Button>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="border-border bg-muted/20 h-80 rounded-md border">
-            <pre className="p-3 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap">
-              {output.length > 0 ? output : "Waiting for serial data…"}
-              <div ref={outputEndRef} />
-            </pre>
-          </ScrollArea>
+          {!activeDevice ? (
+            <p className="text-muted-foreground text-sm">
+              Connect a device to view serial output.
+            </p>
+          ) : (
+            <ScrollArea className="border-border bg-muted/20 h-80 rounded-md border">
+              <pre className="p-3 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap">
+                {output.length > 0
+                  ? output
+                  : isMonitoring
+                    ? "Waiting for serial data…"
+                    : "Monitor idle — restart if the stream ended."}
+                <div ref={outputEndRef} />
+              </pre>
+            </ScrollArea>
+          )}
         </CardContent>
       </Card>
 

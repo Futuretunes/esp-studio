@@ -24,6 +24,17 @@ export const WEB_SERIAL_CAPABILITIES: DeviceCapabilities = {
 };
 
 /**
+ * Optional hooks for {@link WebSerialConnection}.
+ */
+export type WebSerialConnectionOptions = {
+  /**
+   * Invoked after an unexpected browser `disconnect` event (unplug / revoke).
+   * Used by the provider to drop remembered ports.
+   */
+  readonly onUnexpectedDisconnect?: () => void;
+};
+
+/**
  * {@link DeviceConnection} backed by a browser `SerialPort`.
  *
  * Exposes raw byte IO via {@link WebSerialTransportIo}. Serial Monitor and
@@ -32,16 +43,28 @@ export const WEB_SERIAL_CAPABILITIES: DeviceCapabilities = {
 export class WebSerialConnection implements DeviceConnection {
   readonly #port: WebSerialPort;
   readonly #io: WebSerialTransportIo;
+  readonly #onUnexpectedDisconnect: (() => void) | undefined;
+  readonly #handleBrowserDisconnect: () => void;
   #state: DeviceConnectionState;
   #lastError: Error | undefined;
+  #listening = false;
 
   /**
    * @param port - Already-opened Web Serial port.
+   * @param options - Optional unexpected-disconnect hook.
    */
-  public constructor(port: WebSerialPort) {
+  public constructor(
+    port: WebSerialPort,
+    options: WebSerialConnectionOptions = {},
+  ) {
     this.#port = port;
     this.#io = new WebSerialTransportIo(port);
     this.#state = "connected";
+    this.#onUnexpectedDisconnect = options.onUnexpectedDisconnect;
+    this.#handleBrowserDisconnect = () => {
+      void this.#onBrowserDisconnect();
+    };
+    this.#attachDisconnectListener();
   }
 
   /**
@@ -83,12 +106,17 @@ export class WebSerialConnection implements DeviceConnection {
     }
 
     this.#state = "disconnecting";
+    this.#detachDisconnectListener();
 
     try {
       if (this.#io.state !== "closed") {
         await this.#io.close();
       }
-      await this.#port.close();
+      try {
+        await this.#port.close();
+      } catch {
+        // Port may already be gone after unplug / revoke — treat as closed.
+      }
       this.#state = "disconnected";
       this.#lastError = undefined;
     } catch (error) {
@@ -102,5 +130,57 @@ export class WebSerialConnection implements DeviceConnection {
       this.#lastError = normalized;
       throw normalized;
     }
+  }
+
+  #attachDisconnectListener(): void {
+    if (this.#listening || typeof this.#port.addEventListener !== "function") {
+      return;
+    }
+    this.#port.addEventListener("disconnect", this.#handleBrowserDisconnect);
+    this.#listening = true;
+  }
+
+  #detachDisconnectListener(): void {
+    if (
+      !this.#listening ||
+      typeof this.#port.removeEventListener !== "function"
+    ) {
+      this.#listening = false;
+      return;
+    }
+    this.#port.removeEventListener(
+      "disconnect",
+      this.#handleBrowserDisconnect,
+    );
+    this.#listening = false;
+  }
+
+  async #onBrowserDisconnect(): Promise<void> {
+    if (
+      this.#state === "disconnected" ||
+      this.#state === "disconnecting"
+    ) {
+      return;
+    }
+
+    this.#detachDisconnectListener();
+    this.#state = "disconnected";
+    this.#lastError = undefined;
+
+    try {
+      if (this.#io.state !== "closed") {
+        await this.#io.close();
+      }
+    } catch {
+      // Best-effort IO teardown after unexpected loss.
+    }
+
+    try {
+      await this.#port.close();
+    } catch {
+      // Port may already be closed by the browser.
+    }
+
+    this.#onUnexpectedDisconnect?.();
   }
 }
