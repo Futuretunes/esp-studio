@@ -111,12 +111,12 @@ MVP stores `category` on each entry but does **not** ship a categories filter UI
 
 ## Acceptance Criteria
 
-- [ ] Feature doc with architecture + sequence diagram.
-- [ ] Static catalog under `src/features/firmware/catalog/` (no network).
-- [ ] Flash UI sources: Built-in / GitHub / Local.
-- [ ] Card select configures `GitHubFirmwareProvider` only.
-- [ ] No search, favorites, remote catalog, category UI, OTA.
-- [ ] `pnpm lint` / `typecheck` / `build` pass.
+- [x] Feature doc with architecture + sequence diagram.
+- [x] Static catalog under `src/features/firmware/catalog/` (no network).
+- [x] Flash UI sources: Built-in / GitHub / Local.
+- [x] Card select configures `GitHubFirmwareProvider` only.
+- [x] No search, favorites, remote catalog, category UI, OTA.
+- [x] `pnpm lint` / `typecheck` / `build` pass.
 
 ## Future Improvements
 
@@ -128,11 +128,12 @@ MVP stores `category` on each entry but does **not** ship a categories filter UI
 ## TODO Checklist
 
 - [x] Documentation reviewed
-- [ ] Implementation complete
-- [ ] `pnpm lint` / `pnpm typecheck` / `pnpm build` pass
-- [ ] Roadmap updated
+- [x] Implementation complete
+- [x] `pnpm lint` / `pnpm typecheck` / `pnpm build` pass
+- [x] Roadmap updated
 
 ## Architectural notes (backwards-compatible)
 
 - Built-in catalog is metadata only; it does not extend `FirmwareProvider`.
 - Default Flash source becomes **Built-in Catalog** (additive UI; Local/GitHub remain).
+- `loadBuiltInCatalog()` returns a `Promise` so a future remote loader can replace the static module without changing Flash call sites.

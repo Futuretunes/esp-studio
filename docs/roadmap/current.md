@@ -1,29 +1,17 @@
 # Current Focus
 
-**Active milestone:** Built-in Firmware Catalog (MVP)
+**Active milestone:** Public beta polish (next)
 
 ## Why this next
 
-GitHub Firmware Provider is stable. Users still need a curated list of popular projects so they can install WLED / ESPHome / etc. without knowing GitHub slugs. The catalog describes sources; GitHub remains the loader.
+One-click Install completes the core flash UX over the stable firmware platform. Next work is release readiness: docs, sample flows, and remaining product surfaces (Serial polish, Filesystem, etc.).
 
-## In scope
+## Just completed
 
-1. `docs/features/built-in-firmware-catalog.md`
-2. Static `BuiltInCatalog` under `src/features/firmware/catalog/`
-3. Flash UI: Built-in Catalog | GitHub Repository | Local File
-4. Card select → `GitHubFirmwareProvider.configureRepository`
-
-## Out of scope
-
-Search, favorites, remote catalog, category UI, version filtering, OTA, one-click auto-install
-
-## Next up
-
-**One-click Install** — fewer steps from catalog selection to `FlashService.flash`.
+**One-click Install (MVP)** — project select auto-loads GitHub release, prefers chip-compatible options, and exposes **Install Firmware** over `FlashService`.
 
 ## Related documents
 
+- [One-click Install](../features/one-click-install.md)
 - [Built-in Firmware Catalog](../features/built-in-firmware-catalog.md)
-- [GitHub Firmware Provider](../features/github-firmware-provider.md)
-- [Firmware Catalog](../features/firmware-catalog.md)
 - [Backlog](./backlog.md)

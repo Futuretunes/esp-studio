@@ -33,6 +33,10 @@ export { FlashService } from "./FlashService";
 export { FlashFeature } from "./flash-page";
 export { FlashPanel } from "./flash-panel";
 export {
+  isFirmwareChipCompatible,
+  sortFirmwareEntriesByChipPreference,
+} from "./chip-compatibility";
+export {
   catalogSelectionKey,
   parseCatalogSelectionKey,
   useFlashWorkflow,

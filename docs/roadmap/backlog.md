@@ -17,7 +17,8 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 | 9b       | Firmware Catalog   | ✅     | Multi-provider catalog; LocalFirmwareProvider only  |
 | 9c       | Firmware Manifest  | ✅     | Canonical JSON schema + parser/validator            |
 | 9d       | GitHub Firmware    | ✅     | First remote FirmwareProvider (Releases + Flash UI) |
-| 9e       | Built-in Catalog   | 🟡     | Static popular projects → GitHubFirmwareProvider    |
+| 9e       | Built-in Catalog   | ✅     | Static popular projects → GitHubFirmwareProvider    |
+| 9f       | One-click Install  | ✅     | Connect → pick project → Install Firmware           |
 | 10       | Firmware Plugins   | ⬜     | Installer contribution points + first plugins       |
 | 11       | Firmware Library   | ⬜     | Catalog browser + one-click install                 |
 | 12       | Serial Monitor     | ✅     | Minimal UTF-8 console over `CommunicationSession`   |
@@ -97,10 +98,17 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 - Manifest discovery + `.bin` fallback; lazy download on `resolve()`.
 - Flash UI: Local File vs GitHub Repository (persisted slug).
 
-### Built-in Firmware Catalog 🟡
+### Built-in Firmware Catalog ✅
 
 - Static curated projects (WLED, ESPHome, Tasmota, OpenMQTTGateway).
 - Flash UI cards configure `GitHubFirmwareProvider` by repository slug.
+- Sources: Built-in Catalog | GitHub Repository | Local File.
+
+### One-click Install ✅
+
+- Auto-load latest release and resolve preferred firmware option.
+- Primary **Install Firmware** action with device/firmware summary.
+- Chip preference ordering + incompatibility warning (options stay visible).
 
 ### Firmware Plugins ⬜
 
