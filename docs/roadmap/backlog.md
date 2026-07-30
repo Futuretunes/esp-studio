@@ -14,7 +14,7 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 | 8        | Flash Engine     | ⬜     | Flash orchestration + esptool-js adapter            |
 | 9        | Firmware Plugins | ⬜     | Installer contribution points + first plugins       |
 | 10       | Firmware Library | ⬜     | Catalog, versions, local/remote artifacts           |
-| 11       | Serial Monitor   | ⬜     | Streaming console over `CommunicationSession`       |
+| 11       | Serial Monitor   | ✅     | Minimal UTF-8 console over `CommunicationSession`   |
 | 12       | Filesystem       | ⬜     | SPIFFS / LittleFS browser                           |
 | 13       | OTA              | ⬜     | Network update flows                                |
 | 14       | IDE              | ⬜     | Monaco-based editing shell                          |
@@ -73,10 +73,10 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 
 - Metadata model, import/export, versioning.
 
-### Serial Monitor ⬜
+### Serial Monitor ✅
 
-- Acquire `CommunicationSession` ownership; consume raw bytes; UTF-8 decode only in the UI layer.
-- Baud configuration via capabilities, log buffer, export.
+- Acquire `CommunicationSession` ownership (`"serial-monitor"`); UTF-8 decode/encode in the UI layer.
+- Live output, auto-scroll, send text, connect/disconnect, clear (minimal).
 
 ### Filesystem ⬜
 

@@ -14,6 +14,7 @@ Internal product and architecture documentation.
 | Device Discovery UI       | [features/device-discovery.md](./features/device-discovery.md)           |
 | Transport IO Layer        | [features/transport-io.md](./features/transport-io.md)                   |
 | Communication Session     | [features/communication-session.md](./features/communication-session.md) |
+| Serial Monitor (Minimal)  | [features/serial-monitor.md](./features/serial-monitor.md)               |
 | Feature template          | [_templates/feature.md](./_templates/feature.md)                         |
 
 ## Process
