@@ -1,5 +1,13 @@
-import type { JSX } from "react";
-import { ChevronDown, ChevronRight, File, Folder, RefreshCw } from "lucide-react";
+import type { ChangeEvent, JSX } from "react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Download,
+  File,
+  Folder,
+  RefreshCw,
+  Upload,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -12,6 +20,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { FilesystemEntry } from "@/features/filesystem/FileEntry";
 import { formatFirmwareSize } from "@/features/flash/format-firmware-size";
@@ -20,7 +29,7 @@ import { formatChipLabel } from "@/features/identification/format-chip-label";
 import { cn } from "@/lib/utils";
 
 /**
- * Filesystem browser panel: device summary, tree, refresh, loading/errors.
+ * Filesystem browser + transfer panel.
  */
 export function FilesystemPanel(): JSX.Element {
   const {
@@ -30,24 +39,58 @@ export function FilesystemPanel(): JSX.Element {
     childrenByPath,
     expandedPaths,
     loadingPaths,
+    selectedPath,
+    selectedKind,
     isRefreshing,
+    isTransferring,
+    transferProgress,
     errorCode,
     errorMessage,
+    pendingUpload,
+    fileInputRef,
     refreshRoot,
     toggleDirectory,
+    selectEntry,
+    requestUpload,
+    handleUploadFileChosen,
+    confirmOverwrite,
+    cancelOverwrite,
+    downloadSelected,
   } = useFilesystemBrowser();
 
   const unsupported = webSerialSupported === false;
   const rootLoading = loadingPaths.has("/");
+  const busy = isRefreshing || isTransferring || rootLoading;
+  const uploadDisabled =
+    unsupported || busy || !activeDevice || selectedKind !== "directory";
+  const downloadDisabled =
+    unsupported || busy || !activeDevice || selectedKind !== "file";
+
+  const handleFileInput = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    event.target.value = "";
+    void handleUploadFileChosen(file);
+  };
 
   return (
     <div className="space-y-4">
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        onChange={handleFileInput}
+      />
+
       {unsupported || errorCode === "unsupported" ? (
         <Alert variant="warning">
-          <AlertTitle>Browser unsupported</AlertTitle>
+          <AlertTitle>
+            {errorCode === "unsupported" && errorMessage
+              ? "Unsupported"
+              : "Browser unsupported"}
+          </AlertTitle>
           <AlertDescription>
-            Web Serial is required to browse the device filesystem. Use a
-            Chromium-based browser on HTTPS or localhost.
+            {errorMessage ??
+              "Web Serial is required to browse the device filesystem. Use a Chromium-based browser on HTTPS or localhost."}
           </AlertDescription>
         </Alert>
       ) : null}
@@ -78,7 +121,7 @@ export function FilesystemPanel(): JSX.Element {
                 type="button"
                 size="sm"
                 variant="secondary"
-                disabled={!activeDevice || isRefreshing || rootLoading}
+                disabled={!activeDevice || busy}
                 onClick={() => {
                   void refreshRoot();
                 }}
@@ -90,14 +133,52 @@ export function FilesystemPanel(): JSX.Element {
         </Alert>
       ) : null}
 
-      {errorMessage && errorCode !== "busy" && errorCode !== "unsupported" ? (
+      {errorMessage && errorCode === "exists" && pendingUpload ? (
+        <Alert variant="warning">
+          <AlertTitle>Overwrite file?</AlertTitle>
+          <AlertDescription className="space-y-3">
+            <p>
+              <span className="font-medium">{pendingUpload.name}</span> already
+              exists on the device. Replace it with the selected upload?
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                disabled={busy}
+                onClick={() => {
+                  void confirmOverwrite();
+                }}
+              >
+                Overwrite
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={busy}
+                onClick={cancelOverwrite}
+              >
+                Cancel
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {errorMessage &&
+      errorCode !== "busy" &&
+      errorCode !== "unsupported" &&
+      errorCode !== "exists" ? (
         <Alert variant="destructive">
           <AlertTitle>
             {errorCode === "no-device"
               ? "No device"
               : errorCode === "not-found"
                 ? "Not found"
-                : "Filesystem"}
+                : errorCode === "invalid-path"
+                  ? "Invalid path"
+                  : "Filesystem"}
           </AlertTitle>
           <AlertDescription className="space-y-3">
             <p>{errorMessage}</p>
@@ -111,7 +192,7 @@ export function FilesystemPanel(): JSX.Element {
                   type="button"
                   size="sm"
                   variant="secondary"
-                  disabled={!activeDevice || isRefreshing || rootLoading}
+                  disabled={!activeDevice || busy}
                   onClick={() => {
                     void refreshRoot();
                   }}
@@ -145,7 +226,29 @@ export function FilesystemPanel(): JSX.Element {
                 type="button"
                 variant="secondary"
                 size="sm"
-                disabled={unsupported || isRefreshing || rootLoading}
+                disabled={uploadDisabled}
+                onClick={requestUpload}
+              >
+                <Upload className="size-3.5" />
+                Upload
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={downloadDisabled}
+                onClick={() => {
+                  void downloadSelected();
+                }}
+              >
+                <Download className="size-3.5" />
+                Download
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={unsupported || busy}
                 onClick={() => {
                   void refreshRoot();
                 }}
@@ -157,7 +260,7 @@ export function FilesystemPanel(): JSX.Element {
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <dl className="grid gap-3 sm:grid-cols-2">
               <div>
                 <dt className="text-muted-foreground text-xs">Chip</dt>
@@ -166,12 +269,26 @@ export function FilesystemPanel(): JSX.Element {
                 </dd>
               </div>
               <div>
-                <dt className="text-muted-foreground text-xs">Provider</dt>
-                <dd className="text-sm font-medium">
-                  {activeDevice.providerLabel}
+                <dt className="text-muted-foreground text-xs">Selection</dt>
+                <dd className="truncate font-mono text-xs">
+                  {selectedPath ?? "None — select a folder to upload or a file to download"}
                 </dd>
               </div>
             </dl>
+
+            {isTransferring || transferProgress ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2 text-sm">
+                  <span>{transferProgress?.message ?? "Transferring…"}</span>
+                  <span className="text-muted-foreground font-mono text-xs">
+                    {transferProgress?.percent !== undefined
+                      ? `${String(transferProgress.percent)}%`
+                      : ""}
+                  </span>
+                </div>
+                <Progress value={transferProgress?.percent ?? 0} />
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       ) : null}
@@ -180,8 +297,9 @@ export function FilesystemPanel(): JSX.Element {
         <CardHeader>
           <CardTitle>Root directory</CardTitle>
           <CardDescription>
-            Volumes discovered from the device partition table. Expand a folder
-            to list files. Browse only — no upload, download, or delete.
+            Select a volume or folder to upload into, or a file to download.
+            SPIFFS transfers are supported in this MVP; LittleFS transfer may be
+            unsupported depending on the image.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -207,9 +325,12 @@ export function FilesystemPanel(): JSX.Element {
                   key={entry.path}
                   entry={entry}
                   depth={0}
+                  selectedPath={selectedPath}
                   expandedPaths={expandedPaths}
                   childrenByPath={childrenByPath}
                   loadingPaths={loadingPaths}
+                  disabled={isTransferring}
+                  onSelect={selectEntry}
                   onToggle={(path) => {
                     void toggleDirectory(path);
                   }}
@@ -226,30 +347,39 @@ export function FilesystemPanel(): JSX.Element {
 type FilesystemTreeNodeProps = {
   entry: FilesystemEntry;
   depth: number;
+  selectedPath: string | null;
   expandedPaths: ReadonlySet<string>;
   childrenByPath: Readonly<Record<string, readonly FilesystemEntry[]>>;
   loadingPaths: ReadonlySet<string>;
+  disabled: boolean;
+  onSelect: (entry: FilesystemEntry) => void;
   onToggle: (path: string) => void;
 };
 
 function FilesystemTreeNode({
   entry,
   depth,
+  selectedPath,
   expandedPaths,
   childrenByPath,
   loadingPaths,
+  disabled,
+  onSelect,
   onToggle,
 }: FilesystemTreeNodeProps): JSX.Element {
   const isDirectory = entry.kind === "directory";
   const expanded = expandedPaths.has(entry.path);
   const loading = loadingPaths.has(entry.path);
   const children = childrenByPath[entry.path] ?? [];
+  const selected = selectedPath === entry.path;
 
   return (
     <li>
       <div
         className={cn(
-          "hover:bg-accent/40 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm",
+          "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm",
+          selected ? "bg-accent" : "hover:bg-accent/40",
+          disabled && "pointer-events-none opacity-60",
         )}
         style={{ paddingLeft: `${String(8 + depth * 16)}px` }}
       >
@@ -257,7 +387,10 @@ function FilesystemTreeNode({
           <button
             type="button"
             className="text-muted-foreground hover:text-foreground inline-flex size-5 items-center justify-center"
-            aria-label={expanded ? `Collapse ${entry.name}` : `Expand ${entry.name}`}
+            aria-label={
+              expanded ? `Collapse ${entry.name}` : `Expand ${entry.name}`
+            }
+            disabled={disabled}
             onClick={() => {
               onToggle(entry.path);
             }}
@@ -272,23 +405,32 @@ function FilesystemTreeNode({
           <span className="inline-flex size-5" />
         )}
 
-        {isDirectory ? (
-          <Folder className="text-muted-foreground size-3.5 shrink-0" />
-        ) : (
-          <File className="text-muted-foreground size-3.5 shrink-0" />
-        )}
-
-        <span className="min-w-0 flex-1 truncate font-medium">{entry.name}</span>
-
-        {entry.kind === "file" ? (
-          <span className="text-muted-foreground shrink-0 font-mono text-xs">
-            {formatFirmwareSize(entry.size)}
+        <button
+          type="button"
+          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+          disabled={disabled}
+          onClick={() => {
+            onSelect(entry);
+          }}
+        >
+          {isDirectory ? (
+            <Folder className="text-muted-foreground size-3.5 shrink-0" />
+          ) : (
+            <File className="text-muted-foreground size-3.5 shrink-0" />
+          )}
+          <span className="min-w-0 flex-1 truncate font-medium">
+            {entry.name}
           </span>
-        ) : entry.size !== undefined ? (
-          <span className="text-muted-foreground shrink-0 font-mono text-xs">
-            {formatFirmwareSize(entry.size)}
-          </span>
-        ) : null}
+          {entry.kind === "file" ? (
+            <span className="text-muted-foreground shrink-0 font-mono text-xs">
+              {formatFirmwareSize(entry.size)}
+            </span>
+          ) : entry.size !== undefined ? (
+            <span className="text-muted-foreground shrink-0 font-mono text-xs">
+              {formatFirmwareSize(entry.size)}
+            </span>
+          ) : null}
+        </button>
       </div>
 
       {isDirectory && expanded ? (
@@ -313,9 +455,12 @@ function FilesystemTreeNode({
                 key={child.path}
                 entry={child}
                 depth={depth + 1}
+                selectedPath={selectedPath}
                 expandedPaths={expandedPaths}
                 childrenByPath={childrenByPath}
                 loadingPaths={loadingPaths}
+                disabled={disabled}
+                onSelect={onSelect}
                 onToggle={onToggle}
               />
             ))

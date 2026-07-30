@@ -1,5 +1,5 @@
 /**
- * Filesystem browser feature — list-only SPIFFS / LittleFS browsing.
+ * Filesystem browser + transfer feature — SPIFFS / LittleFS.
  *
  * @packageDocumentation
  */
@@ -19,5 +19,15 @@ export {
   isFilesystemError,
   type FilesystemErrorCode,
 } from "./FilesystemError";
-export { FilesystemService } from "./FilesystemService";
+export {
+  FilesystemService,
+  type FilesystemDownloadOptions,
+  type FilesystemUploadOptions,
+} from "./FilesystemService";
+export {
+  createFilesystemTransferProgress,
+  type FilesystemTransferProgress,
+  type FilesystemTransferProgressListener,
+  type FilesystemTransferStage,
+} from "./FilesystemTransferProgress";
 export { FilesystemFeature } from "./filesystem-page";

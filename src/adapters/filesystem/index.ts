@@ -4,4 +4,8 @@
  * @packageDocumentation
  */
 
-export { EspFilesystemAdapter } from "./EspFilesystemAdapter";
+export {
+  EspFilesystemAdapter,
+  type EspFilesystemReadOptions,
+  type EspFilesystemWriteOptions,
+} from "./EspFilesystemAdapter";

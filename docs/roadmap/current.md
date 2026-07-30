@@ -1,25 +1,24 @@
 # Current Focus
 
-**Active milestone:** Public Beta Hardening
+**Active milestone:** Filesystem Upload & Download (MVP)
 
 ## Why this next
 
-Feature surface is complete enough for beta. Remaining work is reliability (disconnects, recovery), consistent UX, copy hygiene, and smoke tests—not new product pillars.
+Public beta hardening stabilized disconnect/UX. Next is on-device file transfer on top of the existing browse architecture—no new abstraction layers.
 
 ## In scope
 
-1. `docs/features/public-beta-hardening.md` + hardware matrix
-2. Unexpected disconnect / permission-loss handling
-3. Consistent alerts, retries, empty/loading states
-4. Stale copy cleanup
-5. Practical `pnpm test` smoke suite
+1. `docs/features/filesystem-transfer.md`
+2. Extend `FilesystemService` + `EspFilesystemAdapter` for upload/download
+3. Progress + overwrite confirmation + Filesystem page actions
+4. SPIFFS primary; LittleFS best-effort
 
 ## Out of scope
 
-New features (OTA, plugins, editable FS mutations, auto-reconnect policies)
+Rename, delete, create folder, drag-and-drop, text editor, OTA, new service layers
 
 ## Related documents
 
-- [Public Beta Hardening](../features/public-beta-hardening.md)
-- [Hardware compatibility](../hardware-compatibility.md)
+- [Filesystem Transfer](../features/filesystem-transfer.md)
+- [Filesystem Browser](../features/filesystem-browser.md)
 - [Backlog](./backlog.md)

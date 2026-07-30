@@ -1,13 +1,19 @@
 /**
- * ESP filesystem adapter — flash-backed SPIFFS / LittleFS directory listing.
+ * ESP filesystem adapter — flash-backed SPIFFS / LittleFS browse + transfer.
  *
- * Uses {@link EspToolAdapter.readFlash} only (no direct `esptool-js` import).
+ * Uses {@link EspToolAdapter.readFlash} / {@link EspToolAdapter.flash} only
+ * (no direct `esptool-js` import).
  */
 
 import {
   EspToolAdapter,
   type EspToolSerialPort,
 } from "@/adapters/esptool";
+import {
+  buildSpiffsImage,
+  detectSpiffsPageSize,
+  extractSpiffsFiles,
+} from "@/adapters/filesystem/spiffs-image";
 import type {
   DirectoryEntry,
   FileEntry,
@@ -15,6 +21,10 @@ import type {
   FilesystemPath,
 } from "@/features/filesystem/FileEntry";
 import { FilesystemError } from "@/features/filesystem/FilesystemError";
+import {
+  createFilesystemTransferProgress,
+  type FilesystemTransferProgressListener,
+} from "@/features/filesystem/FilesystemTransferProgress";
 
 const PARTITION_TABLE_ADDRESS = 0x8000;
 const PARTITION_TABLE_MAX_BYTES = 0xc00;
@@ -23,6 +33,7 @@ const PARTITION_MAGIC = 0x50aa;
 const PARTITION_TYPE_DATA = 0x01;
 const PARTITION_SUBTYPE_SPIFFS = 0x82;
 const PARTITION_SUBTYPE_LITTLEFS = 0x83;
+const MAX_VOLUME_READ_BYTES = 4 * 1024 * 1024;
 
 type FilesystemVolume = {
   readonly label: string;
@@ -32,13 +43,28 @@ type FilesystemVolume = {
 };
 
 /**
- * Adapter that lists ESP filesystem contents from flash images.
+ * Options for {@link EspFilesystemAdapter.writeFile}.
+ */
+export type EspFilesystemWriteOptions = {
+  readonly overwrite?: boolean;
+  readonly onProgress?: FilesystemTransferProgressListener;
+};
+
+/**
+ * Options for {@link EspFilesystemAdapter.readFile}.
+ */
+export type EspFilesystemReadOptions = {
+  readonly onProgress?: FilesystemTransferProgressListener;
+};
+
+/**
+ * Adapter that lists and transfers ESP filesystem contents from flash images.
  */
 export class EspFilesystemAdapter {
   readonly #esptool: EspToolAdapter;
 
   /**
-   * @param esptool - Shared esptool adapter used for flash reads
+   * @param esptool - Shared esptool adapter used for flash reads/writes
    */
   constructor(esptool: EspToolAdapter = new EspToolAdapter()) {
     this.#esptool = esptool;
@@ -72,33 +98,177 @@ export class EspFilesystemAdapter {
       return volumes.map((volume) => volumeToDirectory(volume));
     }
 
-    const segments = normalized.slice(1).split("/").filter(Boolean);
-    const volumeLabel = segments[0];
-    if (volumeLabel === undefined) {
-      throw new FilesystemError("invalid-path", "Filesystem path is empty.");
-    }
-
-    const volume = volumes.find(
-      (item) => item.label.toLowerCase() === volumeLabel.toLowerCase(),
+    const resolved = resolveVolumePath(volumes, normalized);
+    const image = await this.#readVolumeImage(port, resolved.volume);
+    return listVolumeEntries(
+      resolved.volume,
+      image,
+      resolved.relativePath,
     );
-    if (volume === undefined) {
+  }
+
+  /**
+   * Reads file bytes at `path`.
+   *
+   * @param port - Native Web Serial port
+   * @param path - Absolute file path (`/volume/…`)
+   * @param options - Optional progress listener
+   */
+  async readFile(
+    port: EspToolSerialPort,
+    path: FilesystemPath,
+    options: EspFilesystemReadOptions = {},
+  ): Promise<Uint8Array> {
+    const normalized = normalizePath(path);
+    if (normalized === null || normalized === "/") {
       throw new FilesystemError(
-        "not-found",
-        `Filesystem volume "${volumeLabel}" was not found.`,
+        "invalid-path",
+        `Invalid download path "${path}".`,
       );
     }
 
-    const relative =
-      segments.length === 1 ? "/" : `/${segments.slice(1).join("/")}`;
+    this.#emit(options.onProgress, "preparing", "Resolving filesystem volume…", {
+      percent: 5,
+    });
+
+    const volumes = await this.#discoverVolumes(port);
+    const resolved = resolveVolumePath(volumes, normalized);
+    if (resolved.relativePath === "/") {
+      throw new FilesystemError(
+        "invalid-path",
+        "Select a file to download, not a volume directory.",
+      );
+    }
+
+    this.#emit(options.onProgress, "reading", "Reading filesystem volume…", {
+      percent: 25,
+    });
+    const image = await this.#readVolumeImage(port, resolved.volume);
+
+    this.#emit(options.onProgress, "reading", "Extracting file…", {
+      percent: 70,
+    });
+    const data = extractFileFromImage(
+      resolved.volume,
+      image,
+      resolved.relativePath,
+    );
+
+    this.#emit(options.onProgress, "completed", "Download ready.", {
+      percent: 100,
+      bytesTransferred: data.byteLength,
+      totalBytes: data.byteLength,
+    });
+    return data;
+  }
+
+  /**
+   * Writes `data` to `path`, rebuilding the volume image and flashing it back.
+   *
+   * @param port - Native Web Serial port
+   * @param path - Absolute file path (`/volume/…`)
+   * @param data - File payload
+   * @param options - Overwrite + progress
+   */
+  async writeFile(
+    port: EspToolSerialPort,
+    path: FilesystemPath,
+    data: Uint8Array,
+    options: EspFilesystemWriteOptions = {},
+  ): Promise<void> {
+    const normalized = normalizePath(path);
+    if (normalized === null || normalized === "/") {
+      throw new FilesystemError(
+        "invalid-path",
+        `Invalid upload path "${path}".`,
+      );
+    }
+
+    this.#emit(options.onProgress, "preparing", "Resolving filesystem volume…", {
+      percent: 5,
+    });
+
+    const volumes = await this.#discoverVolumes(port);
+    const resolved = resolveVolumePath(volumes, normalized);
+    if (resolved.relativePath === "/") {
+      throw new FilesystemError(
+        "invalid-path",
+        "Upload requires a file path under a volume (for example /spiffs/config.json).",
+      );
+    }
+
+    this.#emit(options.onProgress, "reading", "Reading filesystem volume…", {
+      percent: 20,
+    });
+    const image = await this.#readVolumeImage(port, resolved.volume);
+    const format = detectFilesystemFormat(image) ?? resolved.volume.format;
+
+    if (format === "littlefs") {
+      throw new FilesystemError(
+        "unsupported",
+        `LittleFS upload is not supported in this MVP for volume "${resolved.volume.label}". Use a SPIFFS data partition, or wait for full LittleFS transfer support.`,
+      );
+    }
+
+    const files = extractSpiffsFiles(image);
+    const key = normalizeRelativePath(resolved.relativePath);
+    const exists = files.has(key);
+    if (exists && options.overwrite !== true) {
+      throw new FilesystemError(
+        "exists",
+        `File "${normalized}" already exists. Confirm overwrite to replace it.`,
+      );
+    }
+
+    files.set(key, data);
+
+    this.#emit(options.onProgress, "writing", "Rebuilding filesystem image…", {
+      percent: 45,
+      bytesTransferred: 0,
+      totalBytes: data.byteLength,
+    });
+
+    const pageSize = detectSpiffsPageSize(image);
+    const blockSize = 4096;
+    const alignedSize =
+      Math.ceil(resolved.volume.size / blockSize) * blockSize;
+    const nextImage = buildSpiffsImage(
+      files,
+      Math.max(alignedSize, blockSize),
+      pageSize,
+      blockSize,
+    ).subarray(0, resolved.volume.size);
+
+    this.#emit(options.onProgress, "writing", "Writing filesystem volume…", {
+      percent: 60,
+      bytesTransferred: 0,
+      totalBytes: nextImage.byteLength,
+    });
 
     try {
-      const image = await this.#esptool.readFlash(
-        port,
-        volume.address,
-        Math.min(volume.size, 4 * 1024 * 1024),
-      );
-      const entries = listVolumeEntries(volume, image, relative);
-      return entries;
+      await this.#esptool.flash(port, {
+        images: [
+          {
+            address: resolved.volume.address,
+            data: nextImage,
+          },
+        ],
+        eraseAll: false,
+        compress: true,
+        onWriteProgress: (_fileIndex, written, total) => {
+          const ratio = total > 0 ? written / total : 1;
+          this.#emit(
+            options.onProgress,
+            "writing",
+            "Writing filesystem volume…",
+            {
+              percent: Math.min(99, Math.round(60 + ratio * 35)),
+              bytesTransferred: written,
+              totalBytes: total,
+            },
+          );
+        },
+      });
     } catch (error) {
       if (error instanceof FilesystemError) {
         throw error;
@@ -107,10 +277,16 @@ export class EspFilesystemAdapter {
         "io-failure",
         error instanceof Error
           ? error.message
-          : "Failed to read the device filesystem.",
+          : "Failed to write the filesystem volume.",
         { cause: error },
       );
     }
+
+    this.#emit(options.onProgress, "completed", "Upload complete.", {
+      percent: 100,
+      bytesTransferred: data.byteLength,
+      totalBytes: data.byteLength,
+    });
   }
 
   async #discoverVolumes(
@@ -139,6 +315,39 @@ export class EspFilesystemAdapter {
       );
     }
     return volumes;
+  }
+
+  async #readVolumeImage(
+    port: EspToolSerialPort,
+    volume: FilesystemVolume,
+  ): Promise<Uint8Array> {
+    try {
+      return await this.#esptool.readFlash(
+        port,
+        volume.address,
+        Math.min(volume.size, MAX_VOLUME_READ_BYTES),
+      );
+    } catch (error) {
+      if (error instanceof FilesystemError) {
+        throw error;
+      }
+      throw new FilesystemError(
+        "io-failure",
+        error instanceof Error
+          ? error.message
+          : "Failed to read the device filesystem.",
+        { cause: error },
+      );
+    }
+  }
+
+  #emit(
+    listener: FilesystemTransferProgressListener | undefined,
+    stage: Parameters<typeof createFilesystemTransferProgress>[0],
+    message: string,
+    extras?: Parameters<typeof createFilesystemTransferProgress>[2],
+  ): void {
+    listener?.(createFilesystemTransferProgress(stage, message, extras));
   }
 }
 
@@ -188,6 +397,57 @@ function parseFilesystemVolumes(
   return volumes;
 }
 
+function resolveVolumePath(
+  volumes: readonly FilesystemVolume[],
+  normalized: string,
+): { readonly volume: FilesystemVolume; readonly relativePath: string } {
+  const segments = normalized.slice(1).split("/").filter(Boolean);
+  const volumeLabel = segments[0];
+  if (volumeLabel === undefined) {
+    throw new FilesystemError("invalid-path", "Filesystem path is empty.");
+  }
+
+  const volume = volumes.find(
+    (item) => item.label.toLowerCase() === volumeLabel.toLowerCase(),
+  );
+  if (volume === undefined) {
+    throw new FilesystemError(
+      "not-found",
+      `Filesystem volume "${volumeLabel}" was not found.`,
+    );
+  }
+
+  const relative =
+    segments.length === 1 ? "/" : `/${segments.slice(1).join("/")}`;
+  return { volume, relativePath: relative };
+}
+
+function extractFileFromImage(
+  volume: FilesystemVolume,
+  image: Uint8Array,
+  relativePath: string,
+): Uint8Array {
+  const detected = detectFilesystemFormat(image) ?? volume.format;
+  const key = normalizeRelativePath(relativePath);
+
+  if (detected === "littlefs") {
+    throw new FilesystemError(
+      "unsupported",
+      `LittleFS download is not supported in this MVP for volume "${volume.label}". SPIFFS volumes support download.`,
+    );
+  }
+
+  const files = extractSpiffsFiles(image);
+  const data = files.get(key);
+  if (data === undefined) {
+    throw new FilesystemError(
+      "not-found",
+      `File "${relativePath}" was not found in volume "${volume.label}".`,
+    );
+  }
+  return data;
+}
+
 function listVolumeEntries(
   volume: FilesystemVolume,
   image: Uint8Array,
@@ -195,18 +455,33 @@ function listVolumeEntries(
 ): readonly FilesystemEntry[] {
   const detected = detectFilesystemFormat(image) ?? volume.format;
 
-  if (detected === "spiffs") {
+  if (detected === "spiffs" || detected === "unknown") {
+    // Prefer structured extract when SPIFFS pages are present; fall back to
+    // the historical name-scan lister for odd third-party images.
+    const extracted = extractSpiffsFiles(image);
+    if (extracted.size > 0 || detected === "spiffs") {
+      const files: FileEntry[] = [...extracted.entries()].map(
+        ([path, data]) => ({
+          kind: "file" as const,
+          name: path.includes("/")
+            ? (path.split("/").at(-1) ?? path)
+            : path.replace(/^\//u, ""),
+          path,
+          size: data.byteLength,
+        }),
+      );
+      if (relativePath !== "/" && files.length === 0) {
+        throw new FilesystemError(
+          "not-found",
+          `Path "${relativePath}" was not found in volume "${volume.label}".`,
+        );
+      }
+      return projectFlatEntries(files, volume.label, relativePath);
+    }
     return listSpiffsPath(image, volume.label, relativePath);
   }
 
-  if (detected === "littlefs") {
-    return listLittleFsPath(image, volume.label, relativePath);
-  }
-
-  throw new FilesystemError(
-    "unsupported",
-    `Filesystem volume "${volume.label}" could not be recognized as SPIFFS or LittleFS.`,
-  );
+  return listLittleFsPath(image, volume.label, relativePath);
 }
 
 function detectFilesystemFormat(
@@ -218,9 +493,6 @@ function detectFilesystemFormat(
       return "littlefs";
     }
   }
-
-  // SPIFFS does not put a global magic at offset 0; treat unknown as SPIFFS-first
-  // when page headers look plausible later.
   return null;
 }
 
@@ -254,7 +526,6 @@ function collectSpiffsFiles(image: Uint8Array): readonly FileEntry[] {
       const span = (image[base + 2] ?? 0) | ((image[base + 3] ?? 0) << 8);
       const flags = image[base + 4] ?? 0;
 
-      // Index header pages typically have span 0 and used flag bits.
       if (span !== 0 || objId === 0xffff || objId === 0) {
         continue;
       }
@@ -323,11 +594,8 @@ function listLittleFsPath(
 
 function collectLittleFsNames(image: Uint8Array): readonly FileEntry[] {
   const found = new Map<string, FileEntry>();
-  // Best-effort scan for printable path-like C strings near LittleFS name tags.
-  // Full CTZ directory walking is deferred; this establishes browse UX for common images.
   for (let i = 0; i + 4 < image.byteLength; i += 1) {
     const b0 = image[i] ?? 0;
-    // LFS_TYPE_NAME = 0x1 in type nibble of some tag encodings; keep a loose scan.
     if (b0 !== 0x01 && b0 !== 0x21 && b0 !== 0x41) {
       continue;
     }
@@ -355,15 +623,13 @@ function collectLittleFsNames(image: Uint8Array): readonly FileEntry[] {
   return [...found.values()].sort((a, b) => a.path.localeCompare(b.path));
 }
 
-/**
- * Projects flat volume-relative file paths into immediate children of `relativePath`.
- */
 function projectFlatEntries(
   files: readonly FileEntry[],
   volumeLabel: string,
   relativePath: string,
 ): readonly FilesystemEntry[] {
-  const prefix = relativePath === "/" ? "/" : `${relativePath.replace(/\/$/u, "")}/`;
+  const prefix =
+    relativePath === "/" ? "/" : `${relativePath.replace(/\/$/u, "")}/`;
   const dirs = new Map<string, DirectoryEntry>();
   const out: FilesystemEntry[] = [];
 
@@ -442,13 +708,20 @@ function normalizePath(path: string): string | null {
     return null;
   }
   const withSlash = path.startsWith("/") ? path : `/${path}`;
-  const parts = withSlash.split("/").filter((part) => part.length > 0 && part !== ".");
+  const parts = withSlash
+    .split("/")
+    .filter((part) => part.length > 0 && part !== ".");
   for (const part of parts) {
     if (part === "..") {
       return null;
     }
   }
   return parts.length === 0 ? "/" : `/${parts.join("/")}`;
+}
+
+function normalizeRelativePath(path: string): string {
+  const withSlash = path.startsWith("/") ? path : `/${path}`;
+  return withSlash.replace(/\/{2,}/gu, "/");
 }
 
 function decodeCString(bytes: Uint8Array): string {

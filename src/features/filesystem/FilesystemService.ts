@@ -1,5 +1,5 @@
 /**
- * Orchestrates filesystem browse operations behind {@link EspFilesystemAdapter}.
+ * Orchestrates filesystem browse and transfer behind {@link EspFilesystemAdapter}.
  *
  * Acquires exclusive {@link CommunicationSession} ownership (`filesystem-browser`),
  * never imports `esptool-js`, and never talks to Web Serial from the UI layer.
@@ -18,13 +18,29 @@ import type {
   FilesystemPath,
 } from "@/features/filesystem/FileEntry";
 import { FilesystemError } from "@/features/filesystem/FilesystemError";
+import type { FilesystemTransferProgressListener } from "@/features/filesystem/FilesystemTransferProgress";
 import {
   WebSerialProvider,
   WEB_SERIAL_PROVIDER_ID,
 } from "@/providers/web-serial";
 
 /**
- * Filesystem browse service for connected ESP devices.
+ * Options for {@link FilesystemService.uploadFile}.
+ */
+export type FilesystemUploadOptions = {
+  readonly overwrite?: boolean;
+  readonly onProgress?: FilesystemTransferProgressListener;
+};
+
+/**
+ * Options for {@link FilesystemService.downloadFile}.
+ */
+export type FilesystemDownloadOptions = {
+  readonly onProgress?: FilesystemTransferProgressListener;
+};
+
+/**
+ * Filesystem browse + transfer service for connected ESP devices.
  */
 export class FilesystemService {
   readonly #manager: DeviceManager;
@@ -36,7 +52,9 @@ export class FilesystemService {
    */
   constructor(
     manager: DeviceManager,
-    adapter: EspFilesystemAdapter = new EspFilesystemAdapter(new EspToolAdapter()),
+    adapter: EspFilesystemAdapter = new EspFilesystemAdapter(
+      new EspToolAdapter(),
+    ),
   ) {
     this.#manager = manager;
     this.#adapter = adapter;
@@ -61,6 +79,64 @@ export class FilesystemService {
     deviceId: string,
     path: FilesystemPath,
   ): Promise<readonly FilesystemEntry[]> {
+    return this.#withOwnership(deviceId, async (port) => {
+      return this.#adapter.listDirectory(port, path);
+    });
+  }
+
+  /**
+   * Downloads file bytes from the device filesystem.
+   *
+   * @param deviceId - Connected device id
+   * @param path - Absolute file path
+   * @param options - Optional progress listener
+   */
+  async downloadFile(
+    deviceId: string,
+    path: FilesystemPath,
+    options: FilesystemDownloadOptions = {},
+  ): Promise<Uint8Array> {
+    return this.#withOwnership(deviceId, async (port) => {
+      return this.#adapter.readFile(port, path, {
+        ...(options.onProgress !== undefined
+          ? { onProgress: options.onProgress }
+          : {}),
+      });
+    });
+  }
+
+  /**
+   * Uploads file bytes to the device filesystem.
+   *
+   * @param deviceId - Connected device id
+   * @param path - Absolute file path
+   * @param data - Payload to write
+   * @param options - Overwrite + progress
+   */
+  async uploadFile(
+    deviceId: string,
+    path: FilesystemPath,
+    data: Uint8Array,
+    options: FilesystemUploadOptions = {},
+  ): Promise<void> {
+    await this.#withOwnership(deviceId, async (port) => {
+      await this.#adapter.writeFile(port, path, data, {
+        ...(options.overwrite !== undefined
+          ? { overwrite: options.overwrite }
+          : {}),
+        ...(options.onProgress !== undefined
+          ? { onProgress: options.onProgress }
+          : {}),
+      });
+    });
+  }
+
+  async #withOwnership<T>(
+    deviceId: string,
+    run: (
+      port: NonNullable<ReturnType<WebSerialProvider["getNativePort"]>>,
+    ) => Promise<T>,
+  ): Promise<T> {
     let lock: ReturnType<CommunicationSession["acquire"]> | undefined;
     let session: CommunicationSession | undefined;
 
@@ -74,14 +150,14 @@ export class FilesystemService {
         if (error instanceof CommunicationOwnershipError) {
           throw new FilesystemError(
             "busy",
-            `Cannot browse the filesystem while another tool owns the connection (${session.ownerId ?? "unknown"}). Stop the Serial Monitor and retry.`,
+            `Cannot use the filesystem while another tool owns the connection (${session.ownerId ?? "unknown"}). Stop the Serial Monitor and retry.`,
             { cause: error },
           );
         }
         throw error;
       }
 
-      return await this.#adapter.listDirectory(target.port, path);
+      return await run(target.port);
     } catch (error) {
       throw this.#normalizeError(error);
     } finally {
@@ -106,14 +182,14 @@ export class FilesystemService {
     if (!device || !io) {
       throw new FilesystemError(
         "no-device",
-        "Cannot browse the filesystem: device has no byte transport. Reconnect and retry.",
+        "Cannot use the filesystem: device has no byte transport. Reconnect and retry.",
       );
     }
 
     if (io.state !== "closed") {
       throw new FilesystemError(
         "busy",
-        "Cannot browse the filesystem while another tool owns the connection. Stop the Serial Monitor and retry.",
+        "Cannot use the filesystem while another tool owns the connection. Stop the Serial Monitor and retry.",
       );
     }
 
@@ -121,7 +197,7 @@ export class FilesystemService {
     if (!(provider instanceof WebSerialProvider)) {
       throw new FilesystemError(
         "unsupported",
-        "Filesystem browsing currently requires the Web Serial provider.",
+        "Filesystem operations currently require the Web Serial provider.",
       );
     }
 
@@ -129,7 +205,7 @@ export class FilesystemService {
     if (!nativePort) {
       throw new FilesystemError(
         "no-device",
-        "Cannot browse the filesystem: native serial port is unavailable for this device.",
+        "Cannot use the filesystem: native serial port is unavailable for this device.",
       );
     }
 
