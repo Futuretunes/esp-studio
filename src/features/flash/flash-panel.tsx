@@ -17,17 +17,24 @@ import { formatFlashAddress } from "@/features/flash/format-flash-address";
 import { formatFirmwareSize } from "@/features/flash/format-firmware-size";
 import type { FlashProgress } from "@/features/flash/FlashProgress";
 import type { FlashResult } from "@/features/flash/FlashResult";
-import type {
-  FlashUiErrorKind,
-  SelectedFirmware,
+import {
+  catalogSelectionKey,
+  type FlashUiErrorKind,
 } from "@/features/flash/use-flash-workflow";
+import type { FirmwareCatalogEntry } from "@/features/firmware/FirmwareProvider";
+import type { FirmwareImage } from "@/features/firmware/FirmwareImage";
+import type { FirmwareResolvedPackage } from "@/features/firmware/FirmwareProvider";
 import { formatChipLabel } from "@/features/identification/format-chip-label";
+import { cn } from "@/lib/utils";
 import type { DeviceSnapshot } from "@/store";
 
 type FlashPanelProps = {
   activeDevice: DeviceSnapshot | null;
   webSerialSupported: boolean | null;
-  firmware: SelectedFirmware | null;
+  catalogEntries: readonly FirmwareCatalogEntry[];
+  selectionKey: string;
+  resolved: FirmwareResolvedPackage | null;
+  primaryImage: FirmwareImage | null;
   isFlashing: boolean;
   progress: FlashProgress | null;
   result: FlashResult | null;
@@ -35,6 +42,7 @@ type FlashPanelProps = {
   errorMessage: string | null;
   flashAddress: number;
   fileInputRef: RefObject<HTMLInputElement | null>;
+  onSelectCatalogEntry: (key: string) => void;
   onSelectFile: (file: File | null) => void;
   onClearFile: () => void;
   onFlash: () => void;
@@ -62,12 +70,15 @@ function stageLabel(stage: FlashProgress["stage"]): string {
 }
 
 /**
- * Flash UI surface: device summary, `.bin` picker, progress, and result.
+ * Flash UI surface: device summary, catalog selection, progress, and result.
  */
 export function FlashPanel({
   activeDevice,
   webSerialSupported,
-  firmware,
+  catalogEntries,
+  selectionKey,
+  resolved,
+  primaryImage,
   isFlashing,
   progress,
   result,
@@ -75,6 +86,7 @@ export function FlashPanel({
   errorMessage,
   flashAddress,
   fileInputRef,
+  onSelectCatalogEntry,
   onSelectFile,
   onClearFile,
   onFlash,
@@ -84,12 +96,16 @@ export function FlashPanel({
     unsupported ||
     isFlashing ||
     !activeDevice ||
-    !firmware ||
-    firmware.data.length === 0;
+    !primaryImage ||
+    primaryImage.data.length === 0;
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
     onSelectFile(file);
+  };
+
+  const handleCatalogChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    onSelectCatalogEntry(event.target.value);
   };
 
   return (
@@ -120,10 +136,11 @@ export function FlashPanel({
       {errorKind === "no-file" || errorKind === "invalid-file" ? (
         <Alert variant="warning">
           <AlertTitle>
-            {errorKind === "invalid-file" ? "Invalid file" : "No file selected"}
+            {errorKind === "invalid-file" ? "Invalid file" : "No firmware selected"}
           </AlertTitle>
           <AlertDescription>
-            {errorMessage ?? "Select a local .bin firmware file to continue."}
+            {errorMessage ??
+              "Select firmware from the catalog (Local file…) to continue."}
           </AlertDescription>
         </Alert>
       ) : null}
@@ -200,14 +217,15 @@ export function FlashPanel({
 
       <Card>
         <CardHeader>
-          <CardTitle>Firmware file</CardTitle>
+          <CardTitle>Firmware catalog</CardTitle>
           <CardDescription>
-            Select one local <span className="font-medium">.bin</span> image.
-            It will be written at{" "}
+            Choose installable firmware from the catalog. MVP includes{" "}
+            <span className="font-medium">Local file...</span> only. Images
+            flash at{" "}
             <span className="font-mono text-xs">
               {formatFlashAddress(flashAddress)}
             </span>{" "}
-            (application offset). Partition editing is not included in this MVP.
+            unless a future provider supplies another address.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -220,60 +238,87 @@ export function FlashPanel({
             onChange={handleFileChange}
           />
 
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={isFlashing || unsupported}
-              onClick={() => {
-                fileInputRef.current?.click();
-              }}
+          <div className="space-y-2">
+            <label
+              htmlFor="firmware-catalog-select"
+              className="text-muted-foreground text-xs"
             >
-              Choose .bin file
-            </Button>
-            {firmware ? (
+              Catalog entry
+            </label>
+            <select
+              id="firmware-catalog-select"
+              value={selectionKey}
+              disabled={isFlashing || unsupported}
+              onChange={handleCatalogChange}
+              className={cn(
+                "border-input bg-background ring-offset-background focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+              )}
+            >
+              <option value="">Select firmware…</option>
+              {catalogEntries.map((entry) => {
+                const key = catalogSelectionKey(
+                  entry.manifest.providerId,
+                  entry.manifest.id,
+                );
+                return (
+                  <option key={key} value={key}>
+                    {entry.manifest.title}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {resolved ? (
               <Button
                 type="button"
                 variant="ghost"
                 disabled={isFlashing}
                 onClick={onClearFile}
               >
-                Clear
+                Clear selection
               </Button>
             ) : null}
           </div>
 
-          {firmware ? (
+          {resolved && primaryImage ? (
             <dl className="grid gap-3 sm:grid-cols-2">
               <div>
-                <dt className="text-muted-foreground text-xs">File</dt>
-                <dd className="truncate text-sm font-medium">{firmware.name}</dd>
+                <dt className="text-muted-foreground text-xs">Firmware</dt>
+                <dd className="truncate text-sm font-medium">
+                  {resolved.manifest.title}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground text-xs">Source</dt>
+                <dd className="text-sm font-medium">
+                  {resolved.manifest.sourceKind}
+                </dd>
               </div>
               <div>
                 <dt className="text-muted-foreground text-xs">Firmware size</dt>
                 <dd className="text-sm font-medium">
-                  {formatFirmwareSize(firmware.size)}
+                  {formatFirmwareSize(primaryImage.size)}
                 </dd>
               </div>
               <div>
                 <dt className="text-muted-foreground text-xs">Flash address</dt>
                 <dd className="font-mono text-sm">
-                  {formatFlashAddress(flashAddress)}
+                  {formatFlashAddress(primaryImage.address)}
                 </dd>
               </div>
             </dl>
           ) : (
             <p className="text-muted-foreground text-sm">
-              No firmware selected yet.
+              No firmware selected yet. Choose{" "}
+              <span className="font-medium">Local file...</span> from the
+              catalog.
             </p>
           )}
         </CardContent>
         <CardFooter className="justify-end gap-2">
-          <Button
-            type="button"
-            disabled={flashDisabled}
-            onClick={onFlash}
-          >
+          <Button type="button" disabled={flashDisabled} onClick={onFlash}>
             {isFlashing ? "Flashing…" : "Flash firmware"}
           </Button>
         </CardFooter>

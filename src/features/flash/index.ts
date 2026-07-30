@@ -33,7 +33,8 @@ export { FlashService } from "./FlashService";
 export { FlashFeature } from "./flash-page";
 export { FlashPanel } from "./flash-panel";
 export {
+  catalogSelectionKey,
+  parseCatalogSelectionKey,
   useFlashWorkflow,
   type FlashUiErrorKind,
-  type SelectedFirmware,
 } from "./use-flash-workflow";

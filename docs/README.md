@@ -18,6 +18,7 @@ Internal product and architecture documentation.
 | ESP Identification        | [features/esp-identification.md](./features/esp-identification.md)       |
 | Flash Service (MVP)       | [features/flash-service.md](./features/flash-service.md)                 |
 | Flash UI (MVP)            | [features/flash-ui.md](./features/flash-ui.md)                           |
+| Firmware Catalog (MVP)    | [features/firmware-catalog.md](./features/firmware-catalog.md)           |
 | Feature template          | [_templates/feature.md](./_templates/feature.md)                         |
 
 ## Process

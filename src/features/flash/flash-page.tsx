@@ -5,13 +5,16 @@ import { FlashPanel } from "@/features/flash/flash-panel";
 import { useFlashWorkflow } from "@/features/flash/use-flash-workflow";
 
 /**
- * Flash feature: local `.bin` flashing through {@link FlashService}.
+ * Flash feature: catalog-selected firmware flashing through {@link FlashService}.
  */
 export function FlashFeature(): JSX.Element {
   const {
     activeDevice,
     webSerialSupported,
-    firmware,
+    catalogEntries,
+    selectionKey,
+    resolved,
+    primaryImage,
     isFlashing,
     progress,
     result,
@@ -20,6 +23,7 @@ export function FlashFeature(): JSX.Element {
     flashAddress,
     fileInputRef,
     ensureSupport,
+    selectCatalogEntry,
     selectFirmwareFile,
     clearFirmware,
     startFlash,
@@ -33,12 +37,15 @@ export function FlashFeature(): JSX.Element {
     <div>
       <PageHeader
         title="Flash Firmware"
-        description="Write a local .bin image to a connected ESP board using Flash Service."
+        description="Select firmware from the catalog and write it to a connected ESP board."
       />
       <FlashPanel
         activeDevice={activeDevice}
         webSerialSupported={webSerialSupported}
-        firmware={firmware}
+        catalogEntries={catalogEntries}
+        selectionKey={selectionKey}
+        resolved={resolved}
+        primaryImage={primaryImage}
         isFlashing={isFlashing}
         progress={progress}
         result={result}
@@ -46,6 +53,7 @@ export function FlashFeature(): JSX.Element {
         errorMessage={errorMessage}
         flashAddress={flashAddress}
         fileInputRef={fileInputRef}
+        onSelectCatalogEntry={selectCatalogEntry}
         onSelectFile={(file) => {
           void selectFirmwareFile(file);
         }}
