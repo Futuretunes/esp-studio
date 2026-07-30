@@ -31,8 +31,13 @@ import {
 import {
   GITHUB_FIRMWARE_PROVIDER_ID,
   GitHubFirmwareProvider,
+  STATIC_HOST_GITHUB_DOWNLOAD_MESSAGE,
+  githubReleasesUrl,
+  isGitHubAssetProxyAvailable,
   isGitHubFirmwareProviderError,
+  parseGitHubRepositorySlug,
   readPersistedGitHubRepository,
+  type GitHubFirmwareProviderErrorCode,
   type GitHubReleaseSummary,
 } from "@/features/firmware/providers/github";
 import { formatChipLabel } from "@/features/identification/format-chip-label";
@@ -83,6 +88,7 @@ export type FlashUiErrorKind =
   | "busy"
   | "failed"
   | "provider"
+  | "proxy-unavailable"
   | null;
 
 /**
@@ -138,6 +144,13 @@ export function useFlashWorkflow() {
   const [result, setResult] = useState<FlashResult | null>(null);
   const [errorKind, setErrorKind] = useState<FlashUiErrorKind>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [providerErrorCode, setProviderErrorCode] = useState<
+    GitHubFirmwareProviderErrorCode | null
+  >(null);
+  const [githubReleasesHref, setGithubReleasesHref] = useState<string | null>(
+    null,
+  );
+  const [proxyAvailable, setProxyAvailable] = useState<boolean | null>(null);
 
   const refreshCatalog = useCallback(async () => {
     try {
@@ -225,8 +238,30 @@ export function useFlashWorkflow() {
   const clearFeedback = useCallback(() => {
     setErrorKind(null);
     setErrorMessage(null);
+    setProviderErrorCode(null);
+    setGithubReleasesHref(null);
     setResult(null);
     setProgress(null);
+  }, []);
+
+  const releasesHrefForSlug = useCallback((slug: string): string | null => {
+    const ref = parseGitHubRepositorySlug(slug);
+    if (ref === null) {
+      return null;
+    }
+    return githubReleasesUrl(ref.owner, ref.repository);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void isGitHubAssetProxyAvailable().then((available) => {
+      if (!cancelled) {
+        setProxyAvailable(available);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const ensureSupport = useCallback(() => {
@@ -278,8 +313,20 @@ export function useFlashWorkflow() {
         setResolved(packageResolved);
       } catch (error) {
         setResolved(null);
+        if (
+          isGitHubFirmwareProviderError(error) &&
+          error.code === "proxy-unavailable"
+        ) {
+          setErrorKind("proxy-unavailable");
+          setProviderErrorCode(error.code);
+          setErrorMessage(STATIC_HOST_GITHUB_DOWNLOAD_MESSAGE);
+          return;
+        }
         setErrorKind(
           isGitHubFirmwareProviderError(error) ? "provider" : "failed",
+        );
+        setProviderErrorCode(
+          isGitHubFirmwareProviderError(error) ? error.code : null,
         );
         setErrorMessage(
           error instanceof Error
@@ -333,11 +380,29 @@ export function useFlashWorkflow() {
       setResolved(null);
       setSelectionKey("");
       setSelectedBuiltInId(builtInId);
+      setRepositorySlug(slug);
+      setGithubReleasesHref(releasesHrefForSlug(slug));
 
       try {
+        const available =
+          proxyAvailable ?? (await isGitHubAssetProxyAvailable());
+        setProxyAvailable(available);
+
+        if (!available) {
+          githubProvider.clear();
+          setReleaseSummary(null);
+          await refreshCatalog();
+          setErrorKind("proxy-unavailable");
+          setProviderErrorCode("proxy-unavailable");
+          setErrorMessage(STATIC_HOST_GITHUB_DOWNLOAD_MESSAGE);
+          return;
+        }
+
         const summary = await githubProvider.configureRepository(slug);
         setReleaseSummary(summary);
-        setRepositorySlug(slug);
+        setGithubReleasesHref(
+          githubReleasesUrl(summary.owner, summary.repository),
+        );
         const nextEntries = await refreshCatalog();
 
         const project = builtInEntries.find((item) => item.id === builtInId);
@@ -352,8 +417,9 @@ export function useFlashWorkflow() {
 
         if (ranked.length === 0) {
           setErrorKind("no-file");
+          setProviderErrorCode("no-firmware-assets");
           setErrorMessage(
-            "No firmware options were found in the latest release for this project.",
+            "This project's latest GitHub release has no installable firmware files that ESP Studio can use. Open GitHub Releases to download a file manually, then use Flash Local File.",
           );
           return;
         }
@@ -361,8 +427,9 @@ export function useFlashWorkflow() {
         const preferred = ranked[0];
         if (preferred === undefined) {
           setErrorKind("no-file");
+          setProviderErrorCode("no-firmware-assets");
           setErrorMessage(
-            "No firmware options were found in the latest release for this project.",
+            "This project's latest GitHub release has no installable firmware files that ESP Studio can use. Open GitHub Releases to download a file manually, then use Flash Local File.",
           );
           return;
         }
@@ -373,7 +440,31 @@ export function useFlashWorkflow() {
         githubProvider.clear();
         setReleaseSummary(null);
         await refreshCatalog();
+
+        if (
+          isGitHubFirmwareProviderError(error) &&
+          error.code === "proxy-unavailable"
+        ) {
+          setErrorKind("proxy-unavailable");
+          setProviderErrorCode(error.code);
+          setErrorMessage(STATIC_HOST_GITHUB_DOWNLOAD_MESSAGE);
+          return;
+        }
+
+        if (
+          isGitHubFirmwareProviderError(error) &&
+          error.code === "no-firmware-assets"
+        ) {
+          setErrorKind("no-file");
+          setProviderErrorCode(error.code);
+          setErrorMessage(error.message);
+          return;
+        }
+
         setErrorKind("provider");
+        setProviderErrorCode(
+          isGitHubFirmwareProviderError(error) ? error.code : null,
+        );
         setErrorMessage(
           isGitHubFirmwareProviderError(error)
             ? error.message
@@ -390,7 +481,9 @@ export function useFlashWorkflow() {
       builtInEntries,
       clearFeedback,
       githubProvider,
+      proxyAvailable,
       refreshCatalog,
+      releasesHrefForSlug,
       resolveCatalogEntry,
     ],
   );
@@ -408,9 +501,31 @@ export function useFlashWorkflow() {
         return;
       }
 
+      clearFeedback();
+      setSelectedBuiltInId(entry.id);
+      setRepositorySlug(entry.repository);
+      setGithubReleasesHref(releasesHrefForSlug(entry.repository));
+      setResolved(null);
+      setSelectionKey("");
+      setReleaseSummary(null);
+
+      if (entry.supportsGithubBinInstall === false) {
+        setErrorKind("no-file");
+        setProviderErrorCode("no-firmware-assets");
+        setErrorMessage(
+          `${entry.name} does not publish ready-to-flash .bin files on GitHub Releases. Firmware is built per device from YAML. Download or compile a .bin from your ${entry.name} workflow, then use Flash Local File.`,
+        );
+        return;
+      }
+
       void configureGitHubRepository(entry.repository, entry.id);
     },
-    [builtInEntries, configureGitHubRepository],
+    [
+      builtInEntries,
+      clearFeedback,
+      configureGitHubRepository,
+      releasesHrefForSlug,
+    ],
   );
 
   const selectCatalogEntry = useCallback(
@@ -657,6 +772,9 @@ export function useFlashWorkflow() {
     result,
     errorKind,
     errorMessage,
+    providerErrorCode,
+    githubReleasesHref,
+    proxyAvailable,
     chipCompatibilityWarning,
     firmwareProjectLabel,
     firmwareVersionLabel,

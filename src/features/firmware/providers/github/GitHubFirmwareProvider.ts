@@ -231,6 +231,13 @@ export class GitHubFirmwareProvider implements FirmwareProvider {
     const release = await fetchLatestRelease(ref.owner, ref.repository);
     const packages = await this.#buildPackages(ref, release);
 
+    if (packages.length === 0) {
+      throw new GitHubFirmwareProviderError(
+        "no-firmware-assets",
+        `The latest release (${release.tagName}) for ${formatGitHubRepositorySlug(ref)} has no installable firmware files. ESP Studio looks for an ESP Studio manifest or .bin assets on the release. Open GitHub Releases to download files manually, then use Flash Local File.`,
+      );
+    }
+
     this.#ref = ref;
     this.#summary = {
       owner: ref.owner,

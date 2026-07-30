@@ -18,6 +18,19 @@ const GITHUB_API_BASE = "https://api.github.com";
 export const GITHUB_ASSET_PROXY_PATH = "/__esp-studio/github-asset" as const;
 
 /**
+ * User-facing copy when this deployment cannot download GitHub release assets.
+ */
+export const STATIC_HOST_GITHUB_DOWNLOAD_MESSAGE =
+  "This deployment cannot download firmware directly from GitHub.\n\nDownload the firmware from the project's GitHub Releases page and use 'Flash Local File' instead." as const;
+
+/** Alias of {@link STATIC_HOST_GITHUB_DOWNLOAD_MESSAGE}. */
+export const GITHUB_ASSET_PROXY_UNAVAILABLE_MESSAGE =
+  STATIC_HOST_GITHUB_DOWNLOAD_MESSAGE;
+
+let proxyAvailabilityCache: boolean | null = null;
+let proxyAvailabilityInflight: Promise<boolean> | null = null;
+
+/**
  * Rewrites a GitHub asset URL through the same-origin download proxy when
  * running in a browser. Node / non-browser callers keep the absolute URL.
  *
@@ -29,6 +42,88 @@ export function resolveGitHubAssetDownloadUrl(url: string): string {
   }
 
   return `${GITHUB_ASSET_PROXY_PATH}?url=${encodeURIComponent(url)}`;
+}
+
+/**
+ * Clears the cached proxy probe result (tests only).
+ */
+export function resetGitHubAssetProxyAvailabilityCache(): void {
+  proxyAvailabilityCache = null;
+  proxyAvailabilityInflight = null;
+}
+
+/**
+ * Probes whether the same-origin GitHub asset proxy is reachable.
+ *
+ * The Vite middleware answers `400` for an invalid probe URL. Static FTP hosts
+ * typically return `404` or an HTML SPA shell instead.
+ *
+ * @returns `true` when downloads through the proxy can proceed
+ */
+export async function isGitHubAssetProxyAvailable(): Promise<boolean> {
+  if (typeof window === "undefined") {
+    return true;
+  }
+
+  if (proxyAvailabilityCache !== null) {
+    return proxyAvailabilityCache;
+  }
+
+  if (proxyAvailabilityInflight !== null) {
+    return proxyAvailabilityInflight;
+  }
+
+  proxyAvailabilityInflight = (async () => {
+    try {
+      const response = await fetch(`${GITHUB_ASSET_PROXY_PATH}?url=probe`, {
+        method: "GET",
+        cache: "no-store",
+      });
+      const contentType = response.headers.get("content-type") ?? "";
+
+      // Middleware reject for disallowed/invalid URL → proxy is present.
+      if (response.status === 400) {
+        proxyAvailabilityCache = true;
+        return true;
+      }
+
+      // Proxy exists but upstream failed on the probe → still treat as present.
+      if (response.status === 502) {
+        proxyAvailabilityCache = true;
+        return true;
+      }
+
+      if (
+        response.status === 404 ||
+        response.status === 405 ||
+        response.status === 501 ||
+        contentType.toLowerCase().includes("text/html")
+      ) {
+        proxyAvailabilityCache = false;
+        return false;
+      }
+
+      proxyAvailabilityCache = false;
+      return false;
+    } catch {
+      proxyAvailabilityCache = false;
+      return false;
+    } finally {
+      proxyAvailabilityInflight = null;
+    }
+  })();
+
+  return proxyAvailabilityInflight;
+}
+
+/**
+ * Builds a public GitHub Releases URL for a repository.
+ *
+ * @param owner - Repository owner
+ * @param repository - Repository name
+ */
+export function githubReleasesUrl(owner: string, repository: string): string {
+  return `https://github.com/${owner}/${repository}/releases`;
 }
 
 /**
@@ -65,7 +160,7 @@ export async function fetchLatestRelease(
   if (!response.ok) {
     throw new GitHubFirmwareProviderError(
       "network-failure",
-      `GitHub returned HTTP ${String(response.status)} while loading the latest release.`,
+      `GitHub is temporarily unavailable (HTTP ${String(response.status)}). Try again in a moment.`,
     );
   }
 
@@ -116,17 +211,17 @@ export async function downloadAssetBytes(
     });
   } catch (error) {
     throw new GitHubFirmwareProviderError(
-      "network-failure",
-      `Could not download "${label}" from GitHub. If you are not running the Vite dev/preview server, host a same-origin proxy for release assets (GitHub CDNs block browser CORS).`,
+      "proxy-unavailable",
+      STATIC_HOST_GITHUB_DOWNLOAD_MESSAGE,
       { cause: error },
     );
   }
 
   if (!response.ok) {
-    throwProxyUnavailableIfNeeded(downloadUrl, response.status, label);
+    throwProxyUnavailableIfNeeded(downloadUrl, response.status);
     throw new GitHubFirmwareProviderError(
       "network-failure",
-      `GitHub returned HTTP ${String(response.status)} while downloading "${label}".`,
+      `Could not download "${label}" from GitHub (HTTP ${String(response.status)}). The release file may have been removed or renamed.`,
     );
   }
 
@@ -135,7 +230,7 @@ export async function downloadAssetBytes(
     downloadUrl.startsWith(GITHUB_ASSET_PROXY_PATH) &&
     contentType.toLowerCase().includes("text/html")
   ) {
-    throwProxyUnavailableError(label);
+    throwProxyUnavailableError();
   }
 
   try {
@@ -150,29 +245,22 @@ export async function downloadAssetBytes(
   }
 }
 
-/**
- * Honest error when the Vite GitHub asset proxy is missing (static hosts).
- */
-export const GITHUB_ASSET_PROXY_UNAVAILABLE_MESSAGE =
-  `GitHub release downloads need a same-origin proxy at ${GITHUB_ASSET_PROXY_PATH}. This deployment does not provide that proxy, so browser downloads fail (GitHub CDNs block CORS). Use pnpm dev / pnpm preview, host an equivalent proxy, or flash a local .bin file instead.` as const;
-
 function throwProxyUnavailableIfNeeded(
   downloadUrl: string,
   status: number,
-  label: string,
 ): void {
   if (
     downloadUrl.startsWith(GITHUB_ASSET_PROXY_PATH) &&
     (status === 404 || status === 405 || status === 501)
   ) {
-    throwProxyUnavailableError(label);
+    throwProxyUnavailableError();
   }
 }
 
-function throwProxyUnavailableError(label: string): never {
+function throwProxyUnavailableError(): never {
   throw new GitHubFirmwareProviderError(
     "proxy-unavailable",
-    `${GITHUB_ASSET_PROXY_UNAVAILABLE_MESSAGE} (while downloading "${label}").`,
+    STATIC_HOST_GITHUB_DOWNLOAD_MESSAGE,
   );
 }
 
@@ -221,7 +309,7 @@ async function distinguishRepoOrReleaseMissing(
   if (!response.ok) {
     throw new GitHubFirmwareProviderError(
       "network-failure",
-      `GitHub returned HTTP ${String(response.status)} while looking up "${owner}/${repo}".`,
+      `GitHub is temporarily unavailable (HTTP ${String(response.status)}). Try again in a moment.`,
     );
   }
 

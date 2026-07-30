@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -9,6 +9,23 @@
       content="ESP Studio — browser-based platform for ESP8266 and ESP32 development"
     />
     <title>ESP Studio</title>
+    <script>
+      /* Apply saved theme before paint (default: light). */
+      (function () {
+        try {
+          var key = "esp-studio.ui.theme";
+          var saved = localStorage.getItem(key);
+          var theme = saved === "dark" || saved === "light" || saved === "system" ? saved : "light";
+          var dark =
+            theme === "dark" ||
+            (theme === "system" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.classList.toggle("dark", dark);
+        } catch (_) {
+          /* keep light default */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

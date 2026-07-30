@@ -112,16 +112,35 @@ export function FirmwareCard({
           </div>
         </dl>
       </CardContent>
-      <CardFooter>
-        <Button
-          type="button"
-          className="w-full"
-          onClick={() => {
-            onInstall(entry);
-          }}
-        >
-          Install
-        </Button>
+      <CardFooter className="flex flex-col gap-2">
+        {entry.supportsGithubBinInstall === false ? (
+          <>
+            <p className="text-muted-foreground text-xs">
+              No universal .bin on GitHub Releases — use a file you built, then
+              Flash Local File.
+            </p>
+            <Button
+              type="button"
+              className="w-full"
+              variant="secondary"
+              onClick={() => {
+                onInstall(entry);
+              }}
+            >
+              Open in Flash
+            </Button>
+          </>
+        ) : (
+          <Button
+            type="button"
+            className="w-full"
+            onClick={() => {
+              onInstall(entry);
+            }}
+          >
+            Install
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );

@@ -26,7 +26,7 @@ export const BUILT_IN_FIRMWARE_CATALOG: readonly BuiltInCatalogEntry[] = [
     id: "esphome",
     name: "ESPHome",
     description:
-      "YAML-driven ESP firmware for Home Assistant and local control.",
+      "YAML-driven ESP firmware for Home Assistant and local control. Builds are device-specific — use a .bin you compiled, not a universal GitHub asset.",
     repository: "esphome/esphome",
     category: "home-automation",
     chipFamilies: [
@@ -39,6 +39,7 @@ export const BUILT_IN_FIRMWARE_CATALOG: readonly BuiltInCatalogEntry[] = [
     ],
     icon: "esphome",
     featured: true,
+    supportsGithubBinInstall: false,
   },
   {
     id: "tasmota",
