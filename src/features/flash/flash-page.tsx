@@ -12,6 +12,8 @@ export function FlashFeature(): JSX.Element {
     activeDevice,
     webSerialSupported,
     firmwareSource,
+    builtInEntries,
+    selectedBuiltInId,
     repositorySlug,
     releaseSummary,
     isLoadingGithub,
@@ -31,6 +33,7 @@ export function FlashFeature(): JSX.Element {
     setFirmwareSource,
     setRepositorySlug,
     loadGitHubRepository,
+    selectBuiltInEntry,
     selectCatalogEntry,
     selectFirmwareFile,
     clearFirmware,
@@ -51,6 +54,8 @@ export function FlashFeature(): JSX.Element {
         activeDevice={activeDevice}
         webSerialSupported={webSerialSupported}
         firmwareSource={firmwareSource}
+        builtInEntries={builtInEntries}
+        selectedBuiltInId={selectedBuiltInId}
         repositorySlug={repositorySlug}
         releaseSummary={releaseSummary}
         isLoadingGithub={isLoadingGithub}
@@ -71,6 +76,7 @@ export function FlashFeature(): JSX.Element {
         onLoadGitHubRepository={() => {
           void loadGitHubRepository();
         }}
+        onSelectBuiltInEntry={selectBuiltInEntry}
         onSelectCatalogEntry={selectCatalogEntry}
         onSelectFile={(file) => {
           void selectFirmwareFile(file);

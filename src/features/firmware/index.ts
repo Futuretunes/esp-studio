@@ -63,4 +63,11 @@ export {
   type GitHubReleaseSummary,
   type GitHubRepositoryRef,
 } from "./providers/github";
+export {
+  BUILT_IN_FIRMWARE_CATALOG,
+  findBuiltInCatalogEntry,
+  loadBuiltInCatalog,
+  type BuiltInCatalogCategory,
+  type BuiltInCatalogEntry,
+} from "./catalog";
 export { FirmwareFeature } from "./firmware-page";

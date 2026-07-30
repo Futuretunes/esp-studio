@@ -1,27 +1,29 @@
 # Current Focus
 
-**Active milestone:** One-click Install (next)
+**Active milestone:** Built-in Firmware Catalog (MVP)
 
 ## Why this next
 
-GitHub Firmware Provider is in place. The next UX step is fewer manual clicks between selecting a catalog entry and flashing through `FlashService`.
+GitHub Firmware Provider is stable. Users still need a curated list of popular projects so they can install WLED / ESPHome / etc. without knowing GitHub slugs. The catalog describes sources; GitHub remains the loader.
 
-## Just completed
+## In scope
 
-**GitHub Firmware Provider (MVP)** — remote `FirmwareProvider` for GitHub Releases with manifest discovery / `.bin` fallback and Flash UI source switch.
-
-## In scope (One-click Install)
-
-1. Streamlined Flash / library flow over `FirmwareCatalog` + `FlashService`
-2. Keep providers pluggable; no GitHub-specific UI beyond the existing source
+1. `docs/features/built-in-firmware-catalog.md`
+2. Static `BuiltInCatalog` under `src/features/firmware/catalog/`
+3. Flash UI: Built-in Catalog | GitHub Repository | Local File
+4. Card select → `GitHubFirmwareProvider.configureRepository`
 
 ## Out of scope
 
-OTA, ESP Web Tools provider, GitHub auth, auto-update
+Search, favorites, remote catalog, category UI, version filtering, OTA, one-click auto-install
+
+## Next up
+
+**One-click Install** — fewer steps from catalog selection to `FlashService.flash`.
 
 ## Related documents
 
+- [Built-in Firmware Catalog](../features/built-in-firmware-catalog.md)
 - [GitHub Firmware Provider](../features/github-firmware-provider.md)
 - [Firmware Catalog](../features/firmware-catalog.md)
-- [Flash UI](../features/flash-ui.md)
 - [Backlog](./backlog.md)

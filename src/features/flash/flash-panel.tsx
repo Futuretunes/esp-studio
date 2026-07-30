@@ -1,4 +1,11 @@
 import type { ChangeEvent, JSX, RefObject } from "react";
+import {
+  CircuitBoard,
+  Home,
+  Lightbulb,
+  Radio,
+  type LucideIcon,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -14,6 +21,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatFlashAddress } from "@/features/flash/format-flash-address";
 import { formatFirmwareSize } from "@/features/flash/format-firmware-size";
 import type { FlashProgress } from "@/features/flash/FlashProgress";
@@ -23,6 +31,7 @@ import {
   type FlashFirmwareSource,
   type FlashUiErrorKind,
 } from "@/features/flash/use-flash-workflow";
+import type { BuiltInCatalogEntry } from "@/features/firmware/catalog";
 import type { FirmwareCatalogEntry } from "@/features/firmware/FirmwareProvider";
 import type { FirmwareImage } from "@/features/firmware/FirmwareImage";
 import type { FirmwareResolvedPackage } from "@/features/firmware/FirmwareProvider";
@@ -35,6 +44,8 @@ type FlashPanelProps = {
   activeDevice: DeviceSnapshot | null;
   webSerialSupported: boolean | null;
   firmwareSource: FlashFirmwareSource;
+  builtInEntries: readonly BuiltInCatalogEntry[];
+  selectedBuiltInId: string | null;
   repositorySlug: string;
   releaseSummary: GitHubReleaseSummary | null;
   isLoadingGithub: boolean;
@@ -53,10 +64,18 @@ type FlashPanelProps = {
   onFirmwareSourceChange: (source: FlashFirmwareSource) => void;
   onRepositorySlugChange: (slug: string) => void;
   onLoadGitHubRepository: () => void;
+  onSelectBuiltInEntry: (entryId: string) => void;
   onSelectCatalogEntry: (key: string) => void;
   onSelectFile: (file: File | null) => void;
   onClearFile: () => void;
   onFlash: () => void;
+};
+
+const BUILTIN_ICONS: Readonly<Record<string, LucideIcon>> = {
+  wled: Lightbulb,
+  esphome: Home,
+  tasmota: CircuitBoard,
+  openmqttgateway: Radio,
 };
 
 function stageLabel(stage: FlashProgress["stage"]): string {
@@ -97,6 +116,19 @@ function formatPublishedDate(value: string | null): string {
   });
 }
 
+function formatCategoryLabel(category: BuiltInCatalogEntry["category"]): string {
+  switch (category) {
+    case "lighting":
+      return "Lighting";
+    case "home-automation":
+      return "Home automation";
+    case "mqtt":
+      return "MQTT";
+    case "firmware":
+      return "Firmware";
+  }
+}
+
 /**
  * Flash UI surface: device summary, catalog selection, progress, and result.
  */
@@ -104,6 +136,8 @@ export function FlashPanel({
   activeDevice,
   webSerialSupported,
   firmwareSource,
+  builtInEntries,
+  selectedBuiltInId,
   repositorySlug,
   releaseSummary,
   isLoadingGithub,
@@ -122,6 +156,7 @@ export function FlashPanel({
   onFirmwareSourceChange,
   onRepositorySlugChange,
   onLoadGitHubRepository,
+  onSelectBuiltInEntry,
   onSelectCatalogEntry,
   onSelectFile,
   onClearFile,
@@ -135,6 +170,8 @@ export function FlashPanel({
     !activeDevice ||
     !primaryImage ||
     primaryImage.data.length === 0;
+  const showGitHubOptions =
+    firmwareSource === "github" || firmwareSource === "builtin";
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
@@ -147,7 +184,7 @@ export function FlashPanel({
 
   const handleSourceChange = (event: ChangeEvent<HTMLSelectElement>) => {
     const value = event.target.value;
-    if (value === "local" || value === "github") {
+    if (value === "builtin" || value === "github" || value === "local") {
       onFirmwareSourceChange(value);
     }
   };
@@ -183,8 +220,7 @@ export function FlashPanel({
             {errorKind === "invalid-file" ? "Invalid file" : "No firmware selected"}
           </AlertTitle>
           <AlertDescription>
-            {errorMessage ??
-              "Select firmware from the catalog to continue."}
+            {errorMessage ?? "Select firmware from the catalog to continue."}
           </AlertDescription>
         </Alert>
       ) : null}
@@ -306,10 +342,77 @@ export function FlashPanel({
                 "border-input bg-background ring-offset-background focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
               )}
             >
-              <option value="local">Local File</option>
+              <option value="builtin">Built-in Catalog</option>
               <option value="github">GitHub Repository</option>
+              <option value="local">Local File</option>
             </select>
           </div>
+
+          {firmwareSource === "builtin" ? (
+            <div className="space-y-4">
+              {builtInEntries.length === 0 ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Skeleton className="h-28 w-full" />
+                  <Skeleton className="h-28 w-full" />
+                  <Skeleton className="h-28 w-full" />
+                  <Skeleton className="h-28 w-full" />
+                </div>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {builtInEntries.map((entry) => {
+                    const Icon = BUILTIN_ICONS[entry.icon] ?? CircuitBoard;
+                    const selected = selectedBuiltInId === entry.id;
+                    return (
+                      <button
+                        key={entry.id}
+                        type="button"
+                        disabled={busy || unsupported}
+                        onClick={() => {
+                          onSelectBuiltInEntry(entry.id);
+                        }}
+                        className={cn(
+                          "border-border bg-card hover:bg-accent/40 focus-visible:ring-ring rounded-lg border p-4 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+                          selected && "border-primary ring-primary/30 ring-1",
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3">
+                            <span className="bg-muted text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-md">
+                              <Icon className="size-4" aria-hidden />
+                            </span>
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium">{entry.name}</p>
+                              <p className="text-muted-foreground text-xs leading-relaxed">
+                                {entry.description}
+                              </p>
+                              <p className="text-muted-foreground font-mono text-[11px]">
+                                {entry.repository}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 flex-col items-end gap-1">
+                            {entry.featured ? (
+                              <Badge variant="secondary">Featured</Badge>
+                            ) : null}
+                            <Badge variant="outline">
+                              {formatCategoryLabel(entry.category)}
+                            </Badge>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {isLoadingGithub && selectedBuiltInId !== null ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-4 w-56" />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {firmwareSource === "github" ? (
             <div className="space-y-4">
@@ -352,90 +455,101 @@ export function FlashPanel({
                   The slug is remembered in this browser.
                 </p>
               </div>
-
-              {releaseSummary ? (
-                <dl className="grid gap-3 sm:grid-cols-3">
-                  <div>
-                    <dt className="text-muted-foreground text-xs">Repository</dt>
-                    <dd className="text-sm font-medium">
-                      {releaseSummary.owner}/{releaseSummary.repository}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted-foreground text-xs">
-                      Latest release
-                    </dt>
-                    <dd className="text-sm font-medium">
-                      {releaseSummary.name ?? releaseSummary.tagName}
-                      {releaseSummary.name !== null &&
-                      releaseSummary.name !== releaseSummary.tagName ? (
-                        <span className="text-muted-foreground">
-                          {" "}
-                          ({releaseSummary.tagName})
-                        </span>
-                      ) : null}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted-foreground text-xs">Published</dt>
-                    <dd className="text-sm font-medium">
-                      {formatPublishedDate(releaseSummary.publishedAt)}
-                    </dd>
-                  </div>
-                </dl>
-              ) : (
-                <p className="text-muted-foreground text-sm">
-                  Load a public repository to list firmware options from its
-                  latest release.
-                </p>
-              )}
             </div>
           ) : null}
 
-          <div className="space-y-2">
-            <label
-              htmlFor="firmware-catalog-select"
-              className="text-muted-foreground text-xs"
-            >
-              {firmwareSource === "github"
-                ? "Firmware options"
-                : "Catalog entry"}
-            </label>
-            <select
-              id="firmware-catalog-select"
-              value={selectionKey}
-              disabled={busy || unsupported}
-              onChange={handleCatalogChange}
-              className={cn(
-                "border-input bg-background ring-offset-background focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
-              )}
-            >
-              <option value="">
-                {isResolving ? "Downloading…" : "Select firmware…"}
-              </option>
-              {catalogEntries.map((entry) => {
-                const key = catalogSelectionKey(
-                  entry.manifest.providerId,
-                  entry.manifest.id,
-                );
-                const originSuffix =
-                  entry.origin === "generated"
-                    ? " (generated)"
-                    : entry.origin === "manifest"
-                      ? " (manifest)"
-                      : "";
-                return (
-                  <option key={key} value={key}>
-                    {entry.manifest.title}
-                    {entry.manifest.version
-                      ? ` · ${entry.manifest.version}`
-                      : ""}
-                    {originSuffix}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
+          {showGitHubOptions && releaseSummary ? (
+            <dl className="grid gap-3 sm:grid-cols-3">
+              <div>
+                <dt className="text-muted-foreground text-xs">Repository</dt>
+                <dd className="text-sm font-medium">
+                  {releaseSummary.owner}/{releaseSummary.repository}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground text-xs">Latest release</dt>
+                <dd className="text-sm font-medium">
+                  {releaseSummary.name ?? releaseSummary.tagName}
+                  {releaseSummary.name !== null &&
+                  releaseSummary.name !== releaseSummary.tagName ? (
+                    <span className="text-muted-foreground">
+                      {" "}
+                      ({releaseSummary.tagName})
+                    </span>
+                  ) : null}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground text-xs">Published</dt>
+                <dd className="text-sm font-medium">
+                  {formatPublishedDate(releaseSummary.publishedAt)}
+                </dd>
+              </div>
+            </dl>
+          ) : null}
+
+          {firmwareSource === "local" ||
+          (showGitHubOptions && releaseSummary !== null) ? (
+            <div className="space-y-2">
+              <label
+                htmlFor="firmware-catalog-select"
+                className="text-muted-foreground text-xs"
+              >
+                {firmwareSource === "local"
+                  ? "Catalog entry"
+                  : "Firmware options"}
+              </label>
+              <select
+                id="firmware-catalog-select"
+                value={selectionKey}
+                disabled={busy || unsupported}
+                onChange={handleCatalogChange}
+                className={cn(
+                  "border-input bg-background ring-offset-background focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+                )}
+              >
+                <option value="">
+                  {isResolving ? "Downloading…" : "Select firmware…"}
+                </option>
+                {catalogEntries.map((entry) => {
+                  const key = catalogSelectionKey(
+                    entry.manifest.providerId,
+                    entry.manifest.id,
+                  );
+                  const originSuffix =
+                    entry.origin === "generated"
+                      ? " (generated)"
+                      : entry.origin === "manifest"
+                        ? " (manifest)"
+                        : "";
+                  return (
+                    <option key={key} value={key}>
+                      {entry.manifest.title}
+                      {entry.manifest.version
+                        ? ` · ${entry.manifest.version}`
+                        : ""}
+                      {originSuffix}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          ) : null}
+
+          {firmwareSource === "builtin" &&
+          selectedBuiltInId === null &&
+          !isLoadingGithub ? (
+            <p className="text-muted-foreground text-sm">
+              Choose a popular project card to load its latest GitHub release.
+            </p>
+          ) : null}
+
+          {firmwareSource === "github" && releaseSummary === null ? (
+            <p className="text-muted-foreground text-sm">
+              Load a public repository to list firmware options from its latest
+              release.
+            </p>
+          ) : null}
 
           <div className="flex flex-wrap gap-2">
             {resolved ? (
@@ -479,15 +593,17 @@ export function FlashPanel({
             </dl>
           ) : (
             <p className="text-muted-foreground text-sm">
-              {firmwareSource === "github"
-                ? "No firmware selected yet. Load a repository, then choose an option (assets download on select)."
-                : (
-                    <>
-                      No firmware selected yet. Choose{" "}
-                      <span className="font-medium">Local file...</span> from
-                      the catalog.
-                    </>
-                  )}
+              {firmwareSource === "local" ? (
+                <>
+                  No firmware selected yet. Choose{" "}
+                  <span className="font-medium">Local file...</span> from the
+                  catalog.
+                </>
+              ) : firmwareSource === "builtin" ? (
+                "No firmware selected yet. Pick a project, then choose a release option (assets download on select)."
+              ) : (
+                "No firmware selected yet. Load a repository, then choose an option (assets download on select)."
+              )}
             </p>
           )}
         </CardContent>

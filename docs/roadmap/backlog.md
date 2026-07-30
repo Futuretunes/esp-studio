@@ -17,6 +17,7 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 | 9b       | Firmware Catalog   | ✅     | Multi-provider catalog; LocalFirmwareProvider only  |
 | 9c       | Firmware Manifest  | ✅     | Canonical JSON schema + parser/validator            |
 | 9d       | GitHub Firmware    | ✅     | First remote FirmwareProvider (Releases + Flash UI) |
+| 9e       | Built-in Catalog   | 🟡     | Static popular projects → GitHubFirmwareProvider    |
 | 10       | Firmware Plugins   | ⬜     | Installer contribution points + first plugins       |
 | 11       | Firmware Library   | ⬜     | Catalog browser + one-click install                 |
 | 12       | Serial Monitor     | ✅     | Minimal UTF-8 console over `CommunicationSession`   |
@@ -95,6 +96,11 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 - `GitHubFirmwareProvider` loads latest release into `FirmwareCatalog`.
 - Manifest discovery + `.bin` fallback; lazy download on `resolve()`.
 - Flash UI: Local File vs GitHub Repository (persisted slug).
+
+### Built-in Firmware Catalog 🟡
+
+- Static curated projects (WLED, ESPHome, Tasmota, OpenMQTTGateway).
+- Flash UI cards configure `GitHubFirmwareProvider` by repository slug.
 
 ### Firmware Plugins ⬜
 
