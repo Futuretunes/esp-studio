@@ -99,14 +99,14 @@ Display:
 
 ## Acceptance Criteria
 
-- [ ] Feature doc with user journey + sequence diagram.
-- [ ] Project select auto-configures GitHub and loads latest release.
-- [ ] Single option auto-selected and resolved; Install enabled.
-- [ ] Multiple options show a selector; chip preference + warning (not hide).
-- [ ] Primary action **Install Firmware** runs flash/verify/reset with progress.
-- [ ] Summary shows device, chip, project, version, size.
-- [ ] No new providers; reuse catalog / GitHub / FlashService.
-- [ ] `pnpm lint` / `typecheck` / `build` pass.
+- [x] Feature doc with user journey + sequence diagram.
+- [x] Project select auto-configures GitHub and loads latest release.
+- [x] Single option auto-selected and resolved; Install enabled.
+- [x] Multiple options show a selector; chip preference + warning (not hide).
+- [x] Primary action **Install Firmware** runs flash/verify/reset with progress.
+- [x] Summary shows device, chip, project, version, size.
+- [x] No new providers; reuse catalog / GitHub / FlashService.
+- [x] `pnpm lint` / `typecheck` / `build` pass.
 
 ## Future Improvements
 
@@ -117,6 +117,6 @@ Display:
 ## TODO Checklist
 
 - [x] Documentation reviewed
-- [ ] Implementation complete
-- [ ] `pnpm lint` / `pnpm typecheck` / `pnpm build` pass
-- [ ] Roadmap updated
+- [x] Implementation complete
+- [x] `pnpm lint` / `pnpm typecheck` / `pnpm build` pass
+- [x] Roadmap updated

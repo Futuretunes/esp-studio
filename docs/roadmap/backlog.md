@@ -18,7 +18,7 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 | 9c       | Firmware Manifest  | ✅     | Canonical JSON schema + parser/validator            |
 | 9d       | GitHub Firmware    | ✅     | First remote FirmwareProvider (Releases + Flash UI) |
 | 9e       | Built-in Catalog   | ✅     | Static popular projects → GitHubFirmwareProvider    |
-| 9f       | One-click Install  | 🟡     | Connect → pick project → Install Firmware           |
+| 9f       | One-click Install  | ✅     | Connect → pick project → Install Firmware           |
 | 10       | Firmware Plugins   | ⬜     | Installer contribution points + first plugins       |
 | 11       | Firmware Library   | ⬜     | Catalog browser + one-click install                 |
 | 12       | Serial Monitor     | ✅     | Minimal UTF-8 console over `CommunicationSession`   |
@@ -104,10 +104,11 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 - Flash UI cards configure `GitHubFirmwareProvider` by repository slug.
 - Sources: Built-in Catalog | GitHub Repository | Local File.
 
-### One-click Install 🟡
+### One-click Install ✅
 
 - Auto-load latest release and resolve preferred firmware option.
 - Primary **Install Firmware** action with device/firmware summary.
+- Chip preference ordering + incompatibility warning (options stay visible).
 
 ### Firmware Plugins ⬜
 

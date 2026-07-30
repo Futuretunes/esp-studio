@@ -1,30 +1,17 @@
 # Current Focus
 
-**Active milestone:** One-click Install (MVP)
+**Active milestone:** Public beta polish (next)
 
 ## Why this next
 
-The firmware platform is feature-complete. Remaining work is UX: connect → pick project → Install, with automatic GitHub configure / release load / option resolve.
+One-click Install completes the core flash UX over the stable firmware platform. Next work is release readiness: docs, sample flows, and remaining product surfaces (Serial polish, Filesystem, etc.).
 
-## In scope
+## Just completed
 
-1. `docs/features/one-click-install.md`
-2. Auto-configure + auto-resolve on project select (single / preferred option)
-3. Firmware version selector when multiple options exist
-4. Primary **Install Firmware** action + device/firmware summary
-5. Optional chip preference + incompatibility warning (do not hide)
-
-## Out of scope
-
-OTA, filesystem, ESP Web Tools, search, favorites, plugins
-
-## Next up
-
-Public beta polish (docs, sample flows, release checklist) or Serial / Filesystem UX.
+**One-click Install (MVP)** — project select auto-loads GitHub release, prefers chip-compatible options, and exposes **Install Firmware** over `FlashService`.
 
 ## Related documents
 
 - [One-click Install](../features/one-click-install.md)
 - [Built-in Firmware Catalog](../features/built-in-firmware-catalog.md)
-- [GitHub Firmware Provider](../features/github-firmware-provider.md)
 - [Backlog](./backlog.md)
