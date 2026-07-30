@@ -11,9 +11,9 @@ export const NAV_ITEMS: readonly NavItem[] = [
   {
     id: "devices",
     label: "Devices",
-    title: "Connect Device",
+    title: "Device",
     path: "/devices",
-    description: "Connect ESP8266 / ESP32 boards over Web Serial",
+    description: "Connect boards and open the Device Dashboard (Device Profiles)",
   },
   {
     id: "firmware",

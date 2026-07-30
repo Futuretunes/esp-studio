@@ -20,6 +20,8 @@ type DeviceDiscoveryPanelProps = {
   isIdentifying?: boolean;
   identifyError?: string | null;
   activeDevice: DeviceSnapshot | null;
+  /** When false, skip the connected device details card (dashboard replaces it). */
+  showConnectedCard?: boolean;
   errorKind:
     | "unsupported"
     | "cancelled"
@@ -53,6 +55,7 @@ export function DeviceDiscoveryPanel({
   isIdentifying = false,
   identifyError = null,
   activeDevice,
+  showConnectedCard = true,
   errorKind,
   errorMessage,
   onIdentify,
@@ -200,7 +203,7 @@ export function DeviceDiscoveryPanel({
         </Card>
       ) : null}
 
-      {activeDevice ? (
+      {activeDevice && showConnectedCard ? (
         <Card>
           <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
             <div className="space-y-1.5">
