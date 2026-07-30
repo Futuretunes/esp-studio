@@ -1,38 +1,27 @@
 # Current Focus
 
-**Active milestone:** Device Layer (Core) — implementation complete, awaiting CI verification on the branch.
+**Active milestone:** Web Serial provider — implementation complete
 
-## Why this first
+## Completed
 
-Web Serial is deliberately **not** the first implementation. ESP Studio needs a stable, transport-agnostic Device Layer so Web Serial, WebUSB, Bluetooth, and Network providers can plug in without rewriting consumers (UI, Flash Engine, Serial Monitor, plugins).
+1. `docs/features/web-serial.md`
+2. Minimal `WebSerialProvider` + `WebSerialConnection` under `src/providers/web-serial`
+3. Additive Device Layer helpers: `connectToDevice`, optional `baudRate`
 
-## Completed in this milestone
+## Still out of scope
 
-1. Documentation for architecture, Device Layer, roadmap, and feature template.
-2. Implementation of `src/core/device` contracts and `DeviceManager`.
-3. No browser transport APIs, no Web Serial, no WebUSB.
-
-## Out of scope (still)
-
-- Concrete transport providers
 - Flashing / esptool-js
-- Serial Monitor streaming
-- Plugin host runtime
-- Full UI migration onto `DeviceManager`
-
-## Exit criteria
-
-- Docs listed in the feature request exist and describe a maintainable architecture.
-- `src/core/device` exports a stable public API.
-- `pnpm lint`, `pnpm typecheck`, and `pnpm build` pass.
-- Future providers can be added by implementing `DeviceProvider` and registering with `DeviceManager`.
+- Serial Monitor streaming and parsing
+- Auto-reconnect
+- Devices UI wiring
+- WebUSB / Bluetooth / Network providers
 
 ## Next up
 
-**Web Serial provider** — document first (`docs/features/web-serial.md`), then implement `src/providers/web-serial` as a `DeviceProvider`.
+**Device Discovery UX** — wire `DeviceManager` + `WebSerialProvider` into the Devices feature (user-gesture connect flow), then Flash Engine.
 
 ## Related documents
 
+- [Web Serial feature](../features/web-serial.md)
+- [Device Layer feature](../features/device-layer.md)
 - [Backlog](./backlog.md)
-- [Device Layer feature spec](../features/device-layer.md)
-- [Device Layer architecture](../architecture/device-layer.md)

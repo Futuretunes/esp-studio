@@ -3,10 +3,19 @@ import type { DeviceInfo, ProviderId } from "./DeviceInfo";
 
 /**
  * Optional knobs for discovery and connect flows.
+ *
+ * Additive fields are optional so existing callers remain valid.
  */
 export type DeviceConnectOptions = {
   /** Optional abort signal to cancel an in-flight request or connect. */
   readonly signal?: AbortSignal;
+  /**
+   * Preferred baud rate for transports that open a serial session.
+   *
+   * Ignored by providers that do not use baud rates. When omitted, the
+   * provider chooses its own default.
+   */
+  readonly baudRate?: number;
 };
 
 /**

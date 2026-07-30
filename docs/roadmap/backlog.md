@@ -7,7 +7,7 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 | 1        | Foundation       | ✅     | Vite/React/TS shell, routing, dark UI, tooling     |
 | 2        | Core             | 🟡     | `src/core/*` domain packages; Device Layer landed  |
 | 3        | Device Layer     | ✅     | Transport-agnostic device contracts + manager      |
-| 4        | Web Serial       | ⬜     | First real `DeviceProvider` implementation         |
+| 4        | Web Serial       | ✅     | First real `DeviceProvider` implementation         |
 | 5        | Device Discovery | ⬜     | UX + APIs to list/request devices across providers |
 | 6        | Flash Engine     | ⬜     | Flash orchestration + esptool-js adapter           |
 | 7        | Firmware Plugins | ⬜     | Installer contribution points + first plugins      |
@@ -35,10 +35,11 @@ Prioritized product roadmap. Status legend: ✅ done · 🟡 in progress · ⬜ 
 - Public contracts for info, capabilities, connection, provider, manager.
 - Fake-provider testability; stable consumer API in `src/core/device`.
 
-### Web Serial ⬜
+### Web Serial ✅
 
-- `WebSerialDeviceProvider` implementing `DeviceProvider`.
+- `WebSerialProvider` implementing `DeviceProvider`.
 - Browser permission flows isolated in `src/providers/web-serial`.
+- Minimal connect/disconnect only (no streaming/flashing yet).
 
 ### Device Discovery ⬜
 

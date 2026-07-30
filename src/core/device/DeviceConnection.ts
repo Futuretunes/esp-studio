@@ -12,8 +12,13 @@ export type DeviceConnection = {
   readonly state: DeviceConnectionState;
   /** Operations supported by this session. */
   readonly capabilities: DeviceCapabilities;
-  /** Most recent error when `state` is `"error"`, if available. */
-  readonly lastError?: Error;
+  /**
+   * Most recent error when `state` is `"error"`, if available.
+   *
+   * Explicit `| undefined` keeps class getters compatible with
+   * `exactOptionalPropertyTypes`.
+   */
+  readonly lastError?: Error | undefined;
   /**
    * Closes the underlying transport session.
    *
