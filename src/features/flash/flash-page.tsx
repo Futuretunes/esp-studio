@@ -34,6 +34,7 @@ export function FlashFeature(): JSX.Element {
     result,
     errorKind,
     errorMessage,
+    githubReleasesHref,
     chipCompatibilityWarning,
     firmwareProjectLabel,
     firmwareVersionLabel,
@@ -81,14 +82,12 @@ export function FlashFeature(): JSX.Element {
   ]);
 
   return (
-    <div>
+    <div className="space-y-4">
       <PageHeader
         title="Install Firmware"
         description="Connect a device, choose a project, then click Install Firmware."
       />
-      <div className="mb-4">
-        <DeviceBusyBanner attempting="flash" />
-      </div>
+      <DeviceBusyBanner attempting="flash" />
       <FlashPanel
         activeDevice={activeDevice}
         webSerialSupported={webSerialSupported}
@@ -110,6 +109,7 @@ export function FlashFeature(): JSX.Element {
         result={result}
         errorKind={errorKind}
         errorMessage={errorMessage}
+        githubReleasesHref={githubReleasesHref}
         chipCompatibilityWarning={chipCompatibilityWarning}
         firmwareProjectLabel={firmwareProjectLabel}
         firmwareVersionLabel={firmwareVersionLabel}

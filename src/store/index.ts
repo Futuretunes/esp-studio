@@ -1,11 +1,16 @@
 import { create } from "zustand";
 
+import type { CommunicationOwnerId } from "@/core/communication";
 import type {
   ChipFamily,
   DeviceCapabilities,
   DeviceConnectionState,
 } from "@/core/device";
-import type { CommunicationOwnerId } from "@/core/communication";
+import {
+  applyThemeToDocument,
+  getInitialTheme,
+  persistTheme,
+} from "@/lib/theme";
 import type { AppTheme } from "@/types";
 
 /**
@@ -58,7 +63,7 @@ type DeviceUiState = {
 export const useUiStore = create<UiState>((set) => ({
   sidebarCollapsed: false,
   mobileSidebarOpen: false,
-  theme: "dark",
+  theme: getInitialTheme(),
   toggleSidebarCollapsed: () => {
     set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed }));
   },
@@ -66,6 +71,8 @@ export const useUiStore = create<UiState>((set) => ({
     set({ mobileSidebarOpen: open });
   },
   setTheme: (theme) => {
+    persistTheme(theme);
+    applyThemeToDocument(theme);
     set({ theme });
   },
 }));

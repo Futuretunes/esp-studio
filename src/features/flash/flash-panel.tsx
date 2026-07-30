@@ -39,7 +39,7 @@ import type { FirmwareResolvedPackage } from "@/features/firmware/FirmwareProvid
 import type { GitHubReleaseSummary } from "@/features/firmware/providers/github";
 import { formatChipLabel } from "@/features/identification/format-chip-label";
 import { cn } from "@/lib/utils";
-import type { DeviceSnapshot } from "@/store";
+import { useDeviceStore, type DeviceSnapshot } from "@/store";
 
 type FlashPanelProps = {
   activeDevice: DeviceSnapshot | null;
@@ -62,6 +62,7 @@ type FlashPanelProps = {
   result: FlashResult | null;
   errorKind: FlashUiErrorKind;
   errorMessage: string | null;
+  githubReleasesHref: string | null;
   chipCompatibilityWarning: string | null;
   firmwareProjectLabel: string | null;
   firmwareVersionLabel: string | null;
@@ -160,6 +161,7 @@ export function FlashPanel({
   result,
   errorKind,
   errorMessage,
+  githubReleasesHref,
   chipCompatibilityWarning,
   firmwareProjectLabel,
   firmwareVersionLabel,
@@ -177,6 +179,8 @@ export function FlashPanel({
 }: FlashPanelProps): JSX.Element {
   const unsupported = webSerialSupported === false;
   const busy = isFlashing || isLoadingGithub || isResolving;
+  const operationOwner = useDeviceStore((state) => state.operationOwner);
+  const showInlineBusyAlert = errorKind === "busy" && operationOwner === null;
   const installDisabled =
     unsupported ||
     busy ||
@@ -234,10 +238,71 @@ export function FlashPanel({
       {errorKind === "no-file" || errorKind === "invalid-file" ? (
         <Alert variant="warning">
           <AlertTitle>
-            {errorKind === "invalid-file" ? "Invalid file" : "No firmware"}
+            {errorKind === "invalid-file"
+              ? "Invalid file"
+              : "No installable firmware"}
           </AlertTitle>
-          <AlertDescription>
-            {errorMessage ?? "Select a firmware project to continue."}
+          <AlertDescription className="space-y-3">
+            <p className="whitespace-pre-line">
+              {errorMessage ?? "Select a firmware project to continue."}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {githubReleasesHref ? (
+                <Button type="button" size="sm" variant="secondary" asChild>
+                  <a
+                    href={githubReleasesHref}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                  >
+                    Open GitHub Releases
+                  </a>
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  onFirmwareSourceChange("local");
+                }}
+              >
+                Flash Local File
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {errorKind === "proxy-unavailable" ? (
+        <Alert variant="warning">
+          <AlertTitle>GitHub downloads unavailable</AlertTitle>
+          <AlertDescription className="space-y-3">
+            <p className="whitespace-pre-line">
+              {errorMessage ??
+                "This deployment cannot download firmware directly from GitHub.\n\nDownload the firmware from the project's GitHub Releases page and use 'Flash Local File' instead."}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {githubReleasesHref ? (
+                <Button type="button" size="sm" variant="secondary" asChild>
+                  <a
+                    href={githubReleasesHref}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                  >
+                    Open GitHub Releases
+                  </a>
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  onFirmwareSourceChange("local");
+                }}
+              >
+                Flash Local File
+              </Button>
+            </div>
           </AlertDescription>
         </Alert>
       ) : null}
@@ -246,11 +311,22 @@ export function FlashPanel({
         <Alert variant="destructive">
           <AlertTitle>Firmware source error</AlertTitle>
           <AlertDescription className="space-y-3">
-            <p>
+            <p className="whitespace-pre-line">
               {errorMessage ??
                 "The selected firmware source could not be loaded."}
             </p>
             <div className="flex flex-wrap gap-2">
+              {githubReleasesHref ? (
+                <Button type="button" size="sm" variant="secondary" asChild>
+                  <a
+                    href={githubReleasesHref}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                  >
+                    Open GitHub Releases
+                  </a>
+                </Button>
+              ) : null}
               {firmwareSource === "github" || firmwareSource === "builtin" ? (
                 <Button
                   type="button"
@@ -262,6 +338,16 @@ export function FlashPanel({
                   Retry load
                 </Button>
               ) : null}
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  onFirmwareSourceChange("local");
+                }}
+              >
+                Flash Local File
+              </Button>
               {resolved ? (
                 <Button
                   type="button"
@@ -278,7 +364,7 @@ export function FlashPanel({
         </Alert>
       ) : null}
 
-      {errorKind === "busy" ? (
+      {showInlineBusyAlert ? (
         <Alert variant="destructive">
           <AlertTitle>Device busy</AlertTitle>
           <AlertDescription className="space-y-3">

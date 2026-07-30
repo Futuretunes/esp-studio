@@ -91,7 +91,7 @@ MVP stores `category` on each entry but does **not** ship a categories filter UI
 | Entry | Repository |
 | ----- | ---------- |
 | WLED | `wled-dev/WLED` |
-| ESPHome | `esphome/esphome` |
+| ESPHome | `esphome/esphome` (`supportsGithubBinInstall: false` — source releases only) |
 | Tasmota | `arendst/Tasmota` |
 | OpenMQTTGateway | `1technophile/OpenMQTTGateway` |
 

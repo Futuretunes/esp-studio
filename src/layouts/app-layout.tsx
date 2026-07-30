@@ -2,7 +2,6 @@ import type { JSX } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 
 import { getNavItemByPath } from "@/app/navigation";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { AppHeader, AppSidebar } from "@/layouts/app-shell";
 import { cn } from "@/lib/utils";
@@ -46,13 +45,13 @@ export function AppLayout(): JSX.Element {
         </div>
       ) : null}
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <AppHeader />
-        <ScrollArea className="flex-1">
-          <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <main className="mx-auto w-full max-w-6xl space-y-4 px-4 py-6 pb-10 sm:px-6 lg:px-8">
             <Outlet />
           </main>
-        </ScrollArea>
+        </div>
       </div>
     </div>
   );

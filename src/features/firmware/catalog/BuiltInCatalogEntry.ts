@@ -41,4 +41,12 @@ export type BuiltInCatalogEntry = {
   readonly icon: string;
   /** Whether to emphasize the entry (ordering / badge). */
   readonly featured: boolean;
+  /**
+   * When `false`, this project does not publish installable `.bin` assets on
+   * GitHub Releases (ESPHome compiles per-device YAML). Flash UI explains and
+   * links to Releases instead of attempting one-click download.
+   *
+   * Defaults to `true` when omitted.
+   */
+  readonly supportsGithubBinInstall?: boolean;
 };

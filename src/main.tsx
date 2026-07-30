@@ -2,7 +2,10 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { App } from "@/app/app";
+import { applyStoredTheme } from "@/lib/theme";
 import "@/styles/globals.css";
+
+applyStoredTheme();
 
 const rootElement = document.getElementById("root");
 

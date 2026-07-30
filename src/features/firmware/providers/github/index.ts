@@ -1,9 +1,13 @@
 export {
   GITHUB_ASSET_PROXY_PATH,
   GITHUB_ASSET_PROXY_UNAVAILABLE_MESSAGE,
+  STATIC_HOST_GITHUB_DOWNLOAD_MESSAGE,
   downloadAssetBytes,
   downloadAssetText,
   fetchLatestRelease,
+  githubReleasesUrl,
+  isGitHubAssetProxyAvailable,
+  resetGitHubAssetProxyAvailabilityCache,
   resolveGitHubAssetDownloadUrl,
 } from "./GitHubApi";
 export {

@@ -11,6 +11,7 @@ export type GitHubFirmwareProviderErrorCode =
   | "release-not-found"
   | "network-failure"
   | "proxy-unavailable"
+  | "no-firmware-assets"
   | "invalid-manifest"
   | "duplicate-manifests"
   | "unsupported-manifest-version"
