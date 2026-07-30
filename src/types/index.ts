@@ -22,6 +22,7 @@ export type NavItemId =
   | "serial"
   | "filesystem"
   | "ota"
+  | "diagnostics"
   | "settings";
 
 export type NavItem = {

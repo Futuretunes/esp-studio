@@ -27,6 +27,7 @@ Internal product and architecture documentation.
 | Filesystem Transfer       | [features/filesystem-transfer.md](./features/filesystem-transfer.md)     |
 | Firmware Library          | [features/firmware-library.md](./features/firmware-library.md)           |
 | Continuous Deployment     | [features/deployment.md](./features/deployment.md)                       |
+| Device Diagnostics        | [features/device-diagnostics.md](./features/device-diagnostics.md)       |
 | Public Beta Hardening     | [features/public-beta-hardening.md](./features/public-beta-hardening.md) |
 | Hardware compatibility    | [hardware-compatibility.md](./hardware-compatibility.md)                 |
 | Feature template          | [_templates/feature.md](./_templates/feature.md)                         |

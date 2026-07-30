@@ -7,6 +7,7 @@ import {
   Library,
   Radio,
   Settings,
+  Stethoscope,
   type LucideIcon,
 } from "lucide-react";
 
@@ -20,5 +21,6 @@ export const NAV_ICONS: Record<NavItemId, LucideIcon> = {
   serial: Cable,
   filesystem: FolderTree,
   ota: Radio,
+  diagnostics: Stethoscope,
   settings: Settings,
 };

@@ -51,6 +51,13 @@ export const NAV_ITEMS: readonly NavItem[] = [
     description: "Push over-the-air firmware updates",
   },
   {
+    id: "diagnostics",
+    label: "Diagnostics",
+    title: "Diagnostics",
+    path: "/diagnostics",
+    description: "Device and system report for support",
+  },
+  {
     id: "settings",
     label: "Settings",
     title: "Settings",
